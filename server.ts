@@ -71,7 +71,7 @@ const server = http.createServer(async (req, res) => {
       sseClients.add(res);
       req.on("close", () => sseClients.delete(res));
       emitSnapshot(res, { t: "conn", ...ibmod.state });
-      emitSnapshot(res, { t: "bracket", symbol: "*", bracket: bracket.snapshot() });
+      emitSnapshot(res, { t: "bracket", bracket: bracket.snapshot() });
       emitSnapshot(res, { t: "hist", tf: "10s", bars: chart.histSnapshot("10s") });
       emitSnapshot(res, { t: "hist", tf: "1m", bars: chart.histSnapshot("1m") });
       emitSnapshot(res, { t: "hist", tf: "1d", bars: chart.histSnapshot("1d") });
@@ -81,7 +81,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (req.method === "GET" && path === "/status") {
-      sendJson(res, 200, { ...ibmod.state, symbol: chart.getSymbol(), pending: bracket.pending() });
+      sendJson(res, 200, { ...ibmod.state, symbol: chart.getSymbol(), cancelInFlight: bracket.pending() });
       return;
     }
 
@@ -95,7 +95,7 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    if (req.method === "POST" && path === "/api/flatten") {
+    if (req.method === "POST" && path === "/api/bracket/flatten") {
       const body = await readJson(req);
       const result = bracket.flatten(String(body.symbol ?? "").toUpperCase());
       sendJson(res, result.ok ? 200 : 400, result);
@@ -110,18 +110,18 @@ const server = http.createServer(async (req, res) => {
         return;
       }
       // A live bracket belongs to its symbol. Switching away from it
-      // disarms it first, so no bracket is left silently resting.
-      for (const s of bracket.workingSymbols()) {
-        if (s !== symbol) bracket.disarm(s, `symbol switch to ${symbol}`);
+      // deactivates it first, so no bracket is left silently resting.
+      if (bracket.hasWorking() && chart.getSymbol() !== symbol) {
+        bracket.deactivate(`symbol switch to ${symbol}`);
       }
       chart.setSymbol(symbol);
       sendJson(res, 200, { ok: true, symbol });
       return;
     }
 
-    if (req.method === "POST" && path === "/api/arm") {
+    if (req.method === "POST" && path === "/api/bracket/activate") {
       const body = await readJson(req);
-      const result = bracket.arm({
+      const result = bracket.activate({
         symbol: String(body.symbol ?? "").toUpperCase(),
         qty: Number(body.qty),
         entry: Number(body.entry),
@@ -133,16 +133,16 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    if (req.method === "POST" && path === "/api/disarm") {
+    if (req.method === "POST" && path === "/api/bracket/deactivate") {
       const body = await readJson(req);
-      const result = bracket.disarm(String(body.symbol ?? "").toUpperCase(), String(body.reason ?? "gui"));
+      const result = bracket.deactivate(String(body.reason ?? "gui"));
       sendJson(res, result.ok ? 200 : 400, result);
       return;
     }
 
-    if (req.method === "POST" && path === "/api/levels") {
+    if (req.method === "POST" && path === "/api/bracket/levels") {
       const body = await readJson(req);
-      const result = bracket.editLevels(String(body.symbol ?? "").toUpperCase(), {
+      const result = bracket.editLevels({
         entry: body.entry === undefined || body.entry === null ? undefined : Number(body.entry),
         stop: body.stop === undefined || body.stop === null ? undefined : Number(body.stop),
         target: body.target === undefined || body.target === null ? undefined : Number(body.target),

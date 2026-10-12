@@ -3,7 +3,8 @@
 Date: 2026-10-12. Status: proposed, awaiting approval.
 
 Validates the transition-lock mechanism in `bracket.ts` against paper
-gateway 4002, per `test/validation/bracket-validation.md`. Two layers
+gateway paper port (4001 IB Gateway or 7497 TWS), per
+`test/validation/bracket-validation.md`. Two layers
 like tradehub-go `e2e/bracket/`: an HTTP scenario script and a
 Playwright GUI spec, both run by one script.
 
@@ -40,7 +41,7 @@ test/
 - Move-during-CANCELING is not tested e2e. This app refuses the move
   instead of queueing it, and the refusal window is milliseconds on
   paper. The design difference is recorded in the validation doc
-- Every scenario leaves the book clean: whatever it arms it disarms,
+- Every scenario leaves the book clean: whatever it activates it deactivates,
   and the runner checks audit.log for the cancel acks
 
 ## Scenarios
@@ -54,20 +55,20 @@ API layer, `bracket-api.mjs`, in order:
 3. Move while working: `POST /api/levels` with new stop and target.
    Snapshot shows new parent and leg order IDs, state still working,
    audit.log carries cancel-acks for the old IDs
-4. Disarm while working: `POST /api/disarm`, snapshot state closed,
+4. Deactivate while working: `POST /api/disarm`, snapshot state closed,
    three cancel-acks in audit.log
 5. Fill and lock: `GET /api/quote`, entry one tick above last price,
    arm, wait for entryLocked in the snapshot. `POST /api/levels` with
    a new entry is refused with "entry locked after fill". `POST
    /api/levels` with new stop and target succeeds and the snapshot
    shows the same stop and target order IDs. In-place modify
-6. Disarm while filled: children cancelled, audit.log carries the
+6. Deactivate while filled: children cancelled, audit.log carries the
    acks, position is flat afterwards per the legs snapshot
-7. Symbol switch disarms: arm AAPL, `POST /api/symbol` with SPY,
+7. Symbol switch deactivates: arm AAPL, `POST /api/symbol` with SPY,
    audit.log carries `symbol switch to SPY` and AAPL cancel-acks
 8. Reconnect reconcile: arm SPY, kill the app, restart through the
    runner path, snapshot shows the bracket rebuilt as working, arms
-   reopen after reconcile, disarm cleans it up
+   reopen after reconcile, deactivate cleans it up
 9. Rejected parent: arm with a limit price at an invalid increment,
    arm call accepted then the reject arrives from IB, snapshot ends
    closed with nothing resting, audit.log carries the error
@@ -88,7 +89,7 @@ Browser layer, `bracket.spec.mjs`:
    needed for fill tests), `pending` added to `/status` (the CANCELING
    lock made visible), and `POST /api/flatten` (market order that
    closes the symbol position). Flatten is not test scaffolding:
-   disarm-while-filled cancels the children and leaves the entry
+   deactivate-while-filled cancels the children and leaves the entry
    position naked, and the GUI had no way to close it
 2. `test/e2e/bracket/run-bracket-test.sh`
 3. `test/e2e/bracket/bracket-api.mjs`. Runs scenarios 1-7 and 9 in
@@ -96,7 +97,7 @@ Browser layer, `bracket.spec.mjs`:
    runner restarts the app and the script runs again with the
    `reconnect` argument for scenario 8
 4. `test/e2e/bracket/bracket.spec.mjs`
-5. Full run against paper 4002, fix what the suite finds, then record
+5. Full run against paper (4001 or 7497), fix what the suite finds, then record
    results back into `test/validation/bracket-validation.md`
 
 ## Known risk in the suite
@@ -111,7 +112,7 @@ intended; the fix lands in phase 5
 
 - Runner exits nonzero on any failed scenario and prints a PASS/FAIL
   line per scenario
-- API layer passes against paper 4002 with the book left flat
+- API layer passes against paper (4001 and 7497) with the book left flat
 - Playwright layer passes headless with the global chromium
 - `bracket-validation.md` updated with what the suite proved and what
   stays inspection-only

@@ -3,397 +3,1356 @@
 <head>
 <meta charset="utf-8">
 <title>bracket-web</title>
-<script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
+<script src="https://unpkg.com/lightweight-charts@5.2.1/dist/lightweight-charts.standalone.production.js"></script>
 <style>
-  :root { color-scheme: dark; }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0; background: #131722; color: #d1d4dc;
-    font: 13px/1.4 ui-monospace, Menlo, Consolas, monospace;
-  }
-  header {
-    display: flex; gap: 16px; align-items: center; padding: 6px 10px;
-    background: #1e222d; border-bottom: 1px solid #2a2e39; flex-wrap: wrap;
-  }
-  .dot { width: 9px; height: 9px; border-radius: 50%; background: #ef5350; display: inline-block; }
-  .dot.on { background: #26a69a; }
-  input, select, button {
-    background: #2a2e39; color: #d1d4dc; border: 1px solid #363c4e;
-    padding: 3px 6px; font: inherit;
-  }
-  button { cursor: pointer; }
-  button:hover { background: #363c4e; }
-  button:disabled { opacity: 0.4; cursor: default; }
-  #arm { background: #1e5c4f; } #arm:hover { background: #26705f; }
-  #disarm { background: #6b2c2c; } #disarm:hover { background: #803535; }
-  .tf.active { background: #2962ff; }
-  main { display: grid; grid-template-columns: 1fr 300px; gap: 8px; padding: 8px; }
-  #charts { position: relative; }
-  #priceChart { height: 460px; }
-  #macdChart { height: 140px; margin-top: 4px; }
-  #dragOverlay { position: absolute; top: 0; left: 0; right: 0; height: 460px; cursor: ns-resize; }
-  #side { display: flex; flex-direction: column; gap: 8px; }
-  .panel { background: #1e222d; border: 1px solid #2a2e39; padding: 6px; }
-  .panel h3 { margin: 0 0 6px; font-size: 12px; color: #8b93a6; text-transform: uppercase; }
-  #tape { height: 300px; overflow-y: auto; }
-  .trow { display: flex; justify-content: space-between; }
-  #depth { height: 260px; overflow-y: auto; }
-  .drow { display: flex; justify-content: space-between; }
-  .bid { color: #26a69a; } .ask { color: #ef5350; }
-  #bottom { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 8px 8px; }
-  table { border-collapse: collapse; width: 100%; }
-  td, th { padding: 2px 8px; text-align: left; border-bottom: 1px solid #2a2e39; }
-  .lock { color: #eab308; }
-  #audit { height: 140px; overflow-y: auto; white-space: pre-wrap; font-size: 11px; color: #8b93a6; }
-  #modal {
-    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6);
-    align-items: center; justify-content: center; z-index: 10;
-  }
-  #modal .box { background: #1e222d; border: 1px solid #363c4e; padding: 20px; min-width: 340px; }
-  #modal .box p { margin: 8px 0; }
-  #modal .row { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+:root {
+  --bg: #161d27;
+  --fg: #d5d8db;
+  --muted: #8d97a1;
+  --accent: #6a9fcc;
+  --border: #2e3947;
+  --code-bg: #212b38;
+  --ok: #238636;
+  --fail: #da3633;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+
+[hidden] { display: none !important; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  height: 100vh;
+  overflow: hidden;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  background: var(--muted);
+  align-self: center;
+}
+
+.dot.up { background: var(--ok); box-shadow: 0 0 6px var(--ok); }
+.dot.down { background: var(--fail); box-shadow: 0 0 6px var(--fail); }
+.dot.wait { background: #f5a623; box-shadow: 0 0 6px #f5a623; animation: dot-pulse 1s ease-in-out infinite; }
+
+@keyframes dot-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+.tc-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(13, 17, 21, 0.55);
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  pointer-events: none;
+}
+
+.tc-locked {
+  opacity: 0.45;
+  cursor: not-allowed !important;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.15rem 0.6rem;
+  white-space: nowrap;
+}
+
+.btn {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--fg);
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  padding: 0.35rem 0.8rem;
+  cursor: pointer;
+}
+
+.btn:hover { border-color: var(--accent); color: var(--accent); }
+
+.btn-danger { border-color: var(--fail); color: var(--fail); }
+.btn-danger:hover { border-color: var(--fail); color: var(--fail); background: rgba(218, 54, 51, 0.12); }
+
+.charts-wrap {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 0.3rem 0.5rem;
+}
+
+.ch-head {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 1px 8px;
+  min-height: 26px;
+}
+
+.ch-sym {
+  font-family: var(--mono);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.ch-switch {
+  display: flex;
+  gap: 5px;
+}
+
+.ch-switch input {
+  width: 8em;
+  padding: 1px 5px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+}
+
+.ch-switch button {
+  padding: 1px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
+.ch-switch button:hover { border-color: var(--accent); }
+
+.ch-banner {
+  color: #f87171;
+  font-weight: 700;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 40%;
+}
+
+.ch-head .td-feedback {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.72rem;
+}
+
+.ch-panes {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.ch-side {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.ch-side-cols {
+  display: flex;
+  flex: 0 0 75%;
+  min-height: 0;
+}
+
+.ch-side-cols > * + * { border-left: 1px solid var(--border); }
+.ch-panes > * + * { border-left: 1px solid var(--border); }
+
+.ch-side > .tc-chart {
+  flex: 1;
+  min-height: 0;
+  border-top: 1px solid var(--border);
+}
+
+.ch-panes .tc-chart {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+}
+
+.tc-chart {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+}
+
+.ch-side-cols .tc-col-orders {
+  width: 128px;
+  flex: 0 0 128px;
+  padding-top: 18px;
+  overflow: hidden;
+}
+
+.ch-head .tc-size { padding: 0; margin-left: auto; }
+
+.ch-head .tc-pos {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  padding: 0;
+}
+
+.ch-head .tc-reset {
+  width: auto;
+  margin: 0 0 0 auto;
+  padding: 1px 10px;
+}
+
+.tc-pos {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 2px 4px;
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  color: var(--muted);
+}
+
+.tc-size {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 4px;
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  color: var(--muted);
+}
+
+.tc-size-btn {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--fg);
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  padding: 1px 5px;
+  cursor: pointer;
+}
+
+.tc-size-btn.active {
+  color: var(--ok);
+  border-color: var(--ok);
+  background: #1e2a24;
+}
+
+.tc-reset {
+  display: block;
+  width: calc(100% - 8px);
+  margin: 2px 4px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--fg);
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  padding: 2px 4px;
+  cursor: pointer;
+}
+
+.tc-reset:hover { border-color: var(--accent); color: var(--accent); }
+
+.ch-side-cols .tc-col-tape {
+  width: 138px;
+  flex: 0 0 138px;
+  padding-top: 18px;
+  overflow: hidden;
+}
+
+.tc-tape {
+  display: flex;
+  gap: 0.45em;
+  padding: 1px 4px;
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  line-height: 1.3;
+  white-space: nowrap;
+  color: var(--muted);
+}
+
+.tc-tape.up { color: var(--ok); }
+.tc-tape.down { color: #ef5b6b; }
+.tc-tape.flat { color: var(--muted); }
+
+.tc-tape-t { margin-left: auto; opacity: 0.55; text-align: right; }
+.tc-tape-p { font-weight: 600; }
+.tc-tape-s { min-width: 2.5em; text-align: right; }
+
+.ch-side-cols .tc-col-depth {
+  width: 320px;
+  flex: 0 0 320px;
+  padding-top: 18px;
+  overflow: hidden;
+}
+
+.tc-depth-hdr {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr 1fr 1fr 0.85fr 1.15fr;
+  padding: 0 3px;
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  line-height: 1.4;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 2px;
+}
+
+.tc-depth-hdr .tc-depth-cell:nth-child(2),
+.tc-depth-hdr .tc-depth-cell:nth-child(3),
+.tc-depth-hdr .tc-depth-cell:nth-child(4),
+.tc-depth-hdr .tc-depth-cell:nth-child(5) { text-align: center; }
+
+.tc-depth-row {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr 1fr 1fr 0.85fr 1.15fr;
+  padding: 0 3px;
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.tc-depth-cell { overflow: hidden; text-overflow: ellipsis; }
+.tc-depth-cell.bid-mm { text-align: left; }
+.tc-depth-cell.bid-sz { text-align: right; padding-right: 4px; }
+.tc-depth-cell.bid-px { text-align: right; font-weight: 600; padding-right: 4px; }
+.tc-depth-cell.ask-px { text-align: left; font-weight: 600; padding-left: 4px; }
+.tc-depth-cell.ask-sz { text-align: left; padding-left: 4px; }
+.tc-depth-cell.ask-mm { text-align: left; }
+
+.tc-ord {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  padding: 1px 4px;
+  display: none;
+  gap: 0.35em;
+  color: var(--muted);
+  background: rgba(20, 22, 26, 0.75);
+}
+
+.tc-ord.filled { color: var(--ok); }
+.tc-ord.working { color: #dcb428; }
+.tc-ord.armed { color: var(--accent); }
+.tc-ord.rejected { color: #ef5b6b; }
+
+.tc-level {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 1px solid;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.tc-level-tag {
+  position: absolute;
+  left: 6px;
+  top: -13px;
+  padding: 1px 6px;
+  background: rgba(11, 12, 14, 0.72);
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  font: 8px var(--mono);
+  pointer-events: auto;
+  cursor: ns-resize;
+  user-select: none;
+}
+
+.ch-tag {
+  position: absolute;
+  top: 4px;
+  left: 8px;
+  z-index: 4;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  pointer-events: none;
+}
+
+.tc-col {
+  width: 96px;
+  flex: 0 0 96px;
+  position: relative;
+  background: rgba(20, 22, 26, 0.55);
+}
+
+.tc-col-head {
+  position: absolute;
+  top: 3px;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  z-index: 5;
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+button.tc-col-head {
+  background: #2a2f36;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 3px 2px;
+  cursor: pointer;
+  font-size: 0.56rem;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+button.tc-col-head:hover { border-color: var(--accent); color: var(--fg); }
+
+button.tc-col-head.active {
+  color: var(--ok);
+  border-color: var(--ok);
+  background: #1e2a24;
+}
+
+.tc-hnd {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  transform: translateY(-50%);
+  pointer-events: auto;
+  cursor: ns-resize;
+  font: 8px var(--mono);
+  padding: 1px 4px;
+  display: none;
+  justify-content: space-between;
+  white-space: nowrap;
+  overflow: hidden;
+  user-select: none;
+  border-radius: 2px 0 0 2px;
+  background: rgba(11, 12, 14, 0.85);
+  border: 1px solid var(--border);
+}
+
+#modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(13, 17, 21, 0.7);
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+}
+
+#modal .box {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 16px 20px;
+  min-width: 360px;
+  font-family: var(--mono);
+}
+
+#modal .box h3 {
+  margin: 0 0 8px;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+#modal .box p { margin: 8px 0; font-size: 0.78rem; }
+#modal .row { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; }
 </style>
 </head>
 <body>
-<header>
-  <span><span id="dot" class="dot"></span> <span id="connText">connecting</span></span>
-  <span>nextId <b id="nextId">-</b></span>
-  <span id="reconText"></span>
-  <span>symbol <input id="symbol" size="8" value="AAPL"> <button id="go">load</button></span>
-  <span>
-    <button class="tf active" data-tf="10s">10s</button>
-    <button class="tf" data-tf="1m">1m</button>
-    <button class="tf" data-tf="1d">1d</button>
-  </span>
-  <span>
-    type
-    <select id="otype"><option value="LMT">limit</option><option value="MKT">market</option></select>
-    qty <input id="qty" size="4" value="100">
-    entry <input id="inEntry" size="8">
-    stop <input id="inStop" size="8">
-    target <input id="inTarget" size="8">
-  </span>
-  <button id="arm">arm</button>
-  <button id="disarm">disarm</button>
-  <span id="note" style="color:#eab308"></span>
-</header>
-
-<main>
-  <div id="charts">
-    <div id="priceChart"></div>
-    <div id="dragOverlay"></div>
-    <div id="macdChart"></div>
+<div class="charts-wrap">
+  <div class="ch-head">
+    <span class="ch-sym" id="ch-sym">SPY</span>
+    <span class="pill" id="conn-pill"><span class="dot wait" id="conn-dot"></span><span id="conn-text">connecting</span></span>
+    <span class="pill" id="ch-switch-pill" style="display:none"><span class="dot wait" id="ch-switch-dot"></span><span id="ch-switch-text"></span></span>
+    <span class="td-feedback" id="ch-feedback"></span>
+    <form class="ch-switch" id="ch-form">
+      <input id="ch-input" placeholder="TICKER" autocomplete="off" maxlength="8">
+      <button type="submit" id="ch-switch-btn">Switch</button>
+    </form>
+    <span class="tc-size" id="ch-tf">
+      <span class="tc-size-label">TF:</span>
+      <button class="tc-size-btn active" data-tf="10s" type="button">10s</button>
+      <button class="tc-size-btn" data-tf="1m" type="button">1m</button>
+      <button class="tc-size-btn" data-tf="1d" type="button">1d</button>
+    </span>
+    <span class="tc-size" id="ch-otype">
+      <span class="tc-size-label">TYPE:</span>
+      <button class="tc-size-btn active" data-ot="LMT" type="button">LMT</button>
+      <button class="tc-size-btn" data-ot="MKT" type="button">MKT</button>
+    </span>
+    <div class="tc-size" id="ch-size">
+      <span class="tc-size-label">SIZE:</span>
+      <button class="tc-size-btn" data-qty="10" type="button">10</button>
+      <button class="tc-size-btn active" data-qty="100" type="button">100</button>
+    </div>
+    <div class="tc-pos" id="ch-pos">
+      <span id="ch-pos-shares">POSITION: 0</span>
+      <span id="ch-pos-pl">PNL: $0.00</span>
+    </div>
+    <button class="tc-reset" id="ch-reset" type="button">RESET</button>
   </div>
-  <div id="side">
-    <div class="panel"><h3>tape</h3><div id="tape"></div></div>
-    <div class="panel"><h3>depth</h3><div id="depth"></div></div>
+  <div class="ch-panes">
+    <div class="tc-chart" id="ch-second"><span class="ch-tag" id="ch-tf-tag">10s</span></div>
+    <div class="ch-side">
+      <div class="ch-side-cols">
+        <div class="tc-col" id="ch-col">
+          <button class="tc-col-head" id="ch-arm" type="button">BRACKET DISABLE</button>
+        </div>
+        <div class="tc-col tc-col-orders" id="ch-orders">
+          <div class="tc-col-head">ORDER</div>
+        </div>
+        <div class="tc-col tc-col-tape" id="ch-tape">
+          <div class="tc-col-head">T&amp;S</div>
+        </div>
+        <div class="tc-col tc-col-depth" id="ch-depth">
+          <div class="tc-col-head">DEPTH</div>
+          <div class="tc-depth-hdr">
+            <span class="tc-depth-cell">MM</span>
+            <span class="tc-depth-cell">SIZE</span>
+            <span class="tc-depth-cell">BID</span>
+            <span class="tc-depth-cell">ASK</span>
+            <span class="tc-depth-cell">SIZE</span>
+            <span class="tc-depth-cell">MM</span>
+          </div>
+        </div>
+      </div>
+      <div class="tc-chart" id="ch-macd"><span class="ch-tag">MACD</span></div>
+    </div>
   </div>
-</main>
-
-<div id="bottom">
-  <div class="panel">
-    <h3>legs</h3>
-    <table><thead><tr><th>leg</th><th>state</th><th>filled</th><th>avg price</th><th></th></tr></thead>
-    <tbody id="legs"></tbody></table>
-  </div>
-  <div class="panel"><h3>audit</h3><div id="audit"></div></div>
 </div>
 
 <div id="modal"><div class="box">
   <h3>confirm bracket</h3>
   <p id="confirmText"></p>
   <div class="row">
-    <button id="confirmNo">cancel</button>
-    <button id="confirmYes">place bracket</button>
+    <button class="btn" id="confirmNo">cancel</button>
+    <button class="btn btn-danger" id="confirmYes">place bracket</button>
   </div>
 </div></div>
 
 <script>
+(function(){
 const $ = (id) => document.getElementById(id);
-const COLORS = { entry: '#787b86', stop: '#ef5350', target: '#26a69a' };
-
+const LEVELS = [
+  { key: 'entry',  color: '#e8c547', label: 'ENTRY', dashed: false },
+  { key: 'target', color: '#e8c547', label: 'EXIT',  dashed: false },
+  { key: 'stop',   color: '#ef5b6b', label: 'STOP',  dashed: true  },
+];
+const levelEls = {};
+const legStatusEls = {};
+let levels = {};
+const defaults = {};
+let lastPrice = null;
+const SYMBOL_KEY = 'bracket-web-symbol';
+let symbol = 'SPY';
+try { symbol = localStorage.getItem(SYMBOL_KEY) || 'SPY'; } catch (e) {}
+let dragging = false;
+let needsPriceFit = true;
+let suppressUntil = 0;
+let bracket = null;        // server snapshot: current bracket or null
+let bracketActive = false;
+let entryLocked = false;
+let cancelInFlight = false;
+let qty = 100;
+let orderType = 'LMT';
 let tf = '10s';
 let bars = { '10s': new Map(), '1m': new Map(), '1d': new Map() };
-let bracket = null;
-let pendingSymbols = new Set();
-let symbol = $('symbol').value.toUpperCase();
+let tapeRows = [];
+let tapePrevPrice = null;
+let depthBids = [];
+let depthAsks = [];
+let macdBars = [];
 
-// ---- charts ----
-const chartOpts = (extra) => Object.assign({
-  layout: { background: { type: 'solid', color: '#131722' }, textColor: '#d1d4dc' },
-  grid: { vertLines: { color: '#1e222d' }, horzLines: { color: '#1e222d' } },
-  rightPriceScale: { borderColor: '#2a2e39' },
-  timeScale: { borderColor: '#2a2e39', timeVisible: true, secondsVisible: true },
-}, extra);
-
-const priceChart = LightweightCharts.createChart($('priceChart'), chartOpts());
-const priceSeries = priceChart.addCandlestickSeries({
-  upColor: '#26a69a', downColor: '#ef5350', borderVisible: false,
-  wickUpColor: '#26a69a', wickDownColor: '#ef5350',
-});
-
-const macdChart = LightweightCharts.createChart($('macdChart'), chartOpts({
-  timeScale: { borderColor: '#2a2e39', timeVisible: true, secondsVisible: true },
-}));
-const macdHist = macdChart.addHistogramSeries({ priceLineVisible: false, lastValueVisible: false });
-const macdLine = macdChart.addLineSeries({ color: '#2962ff', lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
-const signalLine = macdChart.addLineSeries({ color: '#ff6d00', lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
-
-// ---- level lines ----
-const lines = {};
-function setLine(name, price) {
-  if (lines[name]) {
-    if (price == null) { priceSeries.removePriceLine(lines[name]); delete lines[name]; return; }
-    lines[name].applyOptions({ price });
-  } else if (price != null) {
-    lines[name] = priceSeries.createPriceLine({
-      price, color: COLORS[name], lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Solid,
-      axisLabelVisible: true, title: name.toUpperCase(),
-    });
-  }
+function fmtEtTime(time, withSeconds){
+  const d = new Date(time * 1000);
+  if (isNaN(d)) return '';
+  const opts = { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' };
+  if (withSeconds) opts.second = '2-digit';
+  return new Intl.DateTimeFormat('en-US', opts).format(d);
 }
-function readLevels() {
+
+function chartOptions(secondsVisible){
   return {
-    entry: parseFloat($('inEntry').value),
-    stop: parseFloat($('inStop').value),
-    target: parseFloat($('inTarget').value),
+    autoSize: true,
+    layout: {
+      background: { type: 'solid', color: 'transparent' },
+      textColor: '#8d97a1',
+      fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
+      fontSize: 8,
+    },
+    localization: { timeFormatter: (t) => fmtEtTime(t, secondsVisible) },
+    grid: {
+      vertLines: { color: 'rgba(141,151,161,0.10)' },
+      horzLines: { color: 'rgba(141,151,161,0.10)' },
+    },
+    rightPriceScale: { borderColor: 'rgba(141,151,161,0.25)' },
+    timeScale: {
+      borderColor: 'rgba(141,151,161,0.25)',
+      timeVisible: true,
+      secondsVisible,
+    },
   };
 }
-function showLevels(lv) {
-  $('inEntry').value = lv.entry || '';
-  $('inStop').value = lv.stop || '';
-  $('inTarget').value = lv.target || '';
-  setLine('entry', lv.entry || null);
-  setLine('stop', lv.stop || null);
-  setLine('target', lv.target || null);
+
+// ---- charts ----
+const priceChart = LightweightCharts.createChart($('ch-second'), chartOptions(true));
+const candle = priceChart.addSeries(LightweightCharts.CandlestickSeries, {
+  upColor: '#34b37e',
+  downColor: '#ef5b6b',
+  borderVisible: false,
+  wickUpColor: '#34b37e',
+  wickDownColor: '#ef5b6b',
+}, 0);
+const volume = priceChart.addSeries(LightweightCharts.HistogramSeries, {
+  priceFormat: { type: 'volume' },
+  lastValueVisible: false,
+  priceLineVisible: false,
+}, 1);
+try {
+  const panes = priceChart.panes();
+  if (panes.length >= 2 && typeof panes[0].setStretchFactor === 'function') {
+    panes[0].setStretchFactor(3);
+    panes[1].setStretchFactor(1);
+  }
+} catch (e) {}
+
+const macdChart = LightweightCharts.createChart($('ch-macd'), chartOptions(false));
+const macdLine = macdChart.addSeries(LightweightCharts.LineSeries, {
+  color: '#34b37e', lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false,
+}, 0);
+const signalLine = macdChart.addSeries(LightweightCharts.LineSeries, {
+  color: '#ef5b6b', lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false,
+}, 0);
+const macdHist = macdChart.addSeries(LightweightCharts.HistogramSeries, {
+  priceLineVisible: false, lastValueVisible: false,
+}, 0);
+
+// ---- level overlays ----
+for (const def of LEVELS) {
+  const line = document.createElement('div');
+  line.className = 'tc-level';
+  line.style.borderTopColor = def.color;
+  if (def.dashed) line.style.borderTopStyle = 'dashed';
+  const tag = document.createElement('span');
+  tag.className = 'tc-level-tag';
+  tag.style.color = def.color;
+  line.appendChild(tag);
+  $('ch-second').appendChild(line);
+
+  const row = document.createElement('div');
+  row.className = 'tc-hnd';
+  row.style.color = def.color;
+  row.style.borderColor = def.color;
+  const name = document.createElement('span');
+  name.textContent = def.label;
+  const price = document.createElement('span');
+  row.appendChild(name);
+  row.appendChild(price);
+  $('ch-col').appendChild(row);
+
+  levelEls[def.key] = { line, tag, row, price, label: def.label };
+  bindDrag(tag, def.key, false);
+  bindDrag(row, def.key, true);
+
+  const st = document.createElement('div');
+  st.className = 'tc-ord';
+  $('ch-orders').appendChild(st);
+  legStatusEls[def.key] = st;
 }
 
-// drag: pick the nearest line, move it, push on release
-let dragging = null;
-const overlay = $('dragOverlay');
-overlay.addEventListener('mousedown', (e) => {
-  const lv = readLevels();
-  const y = e.offsetY;
-  let best = null, bestDist = 12;
-  for (const [name, price] of Object.entries(lv)) {
-    if (!price) continue;
-    const c = priceSeries.priceToCoordinate(price);
-    if (c == null) continue;
-    const d = Math.abs(c - y);
-    if (d < bestDist) { bestDist = d; best = { name, price }; }
-  }
-  if (best && best.name === 'entry' && bracket && bracket.entryLocked) {
-    flash('entry locked after fill');
-    return;
-  }
-  if (best) dragging = best;
-});
-overlay.addEventListener('mousemove', (e) => {
-  if (!dragging) return;
-  const price = priceSeries.coordinateToPrice(e.offsetY);
-  if (price == null) return;
-  dragging.price = Math.round(price * 100) / 100;
-  showLevels({ ...readLevels(), [dragging.name]: dragging.price });
-});
-window.addEventListener('mouseup', async () => {
-  if (!dragging) return;
-  const lv = readLevels();
-  if (bracket && bracket.state !== 'closed') {
-    const r = await post('/api/levels', { symbol, entry: lv.entry, stop: lv.stop, target: lv.target });
-    if (!r.ok) { flash(r.error); renderLegs(); }
-  }
-  dragging = null;
-});
-['inEntry', 'inStop', 'inTarget'].forEach((id) =>
-  $(id).addEventListener('change', async () => {
-    const lv = readLevels();
-    showLevels(lv);
-    if (bracket && bracket.state !== 'closed') {
-      const r = await post('/api/levels', { symbol, ...lv });
-      if (!r.ok) { flash(r.error); renderLegs(); }
+function bindDrag(el, key, unit){
+  el.addEventListener('pointerdown', (ev) => {
+    if (!levels.entry) return;
+    if (key === 'entry' && entryLocked && bracketActive) {
+      $('ch-feedback').textContent = 'entry locked after fill';
+      return;
     }
-  })
-);
-
-let noteTimer = null;
-function flash(msg) {
-  $('note').textContent = msg;
-  clearTimeout(noteTimer);
-  noteTimer = setTimeout(() => { $('note').textContent = ''; }, 4000);
+    ev.preventDefault();
+    dragging = true;
+    el.setPointerCapture(ev.pointerId);
+    const startY = ev.clientY;
+    const orig = { entry: levels.entry, target: levels.target, stop: levels.stop };
+    const onMove = (e2) => {
+      const y0 = candle.priceToCoordinate(orig[key]);
+      if (y0 === null || y0 === undefined) return;
+      const raw = candle.coordinateToPrice(y0 + e2.clientY - startY);
+      if (!raw || raw <= 0) return;
+      const price = Math.round(raw * 100) / 100;
+      if (unit) {
+        const delta = Math.round((price - orig[key]) * 100) / 100;
+        const next = {
+          entry: Math.round((orig.entry + delta) * 100) / 100,
+          target: orig.target ? Math.round((orig.target + delta) * 100) / 100 : null,
+          stop: orig.stop ? Math.round((orig.stop + delta) * 100) / 100 : null,
+        };
+        if (next.entry <= 0 || (next.target !== null && next.target <= 0) || (next.stop !== null && next.stop <= 0)) return;
+        levels = next;
+      } else {
+        let v = price;
+        if (key === 'entry') {
+          if (orig.target) v = Math.min(v, Math.round((orig.target - 0.01) * 100) / 100);
+          if (orig.stop) v = Math.max(v, Math.round((orig.stop + 0.01) * 100) / 100);
+        } else if (key === 'target') {
+          v = Math.max(v, Math.round((orig.entry + 0.01) * 100) / 100);
+        } else if (key === 'stop') {
+          v = Math.min(v, Math.round((orig.entry - 0.01) * 100) / 100);
+        }
+        levels = Object.assign({}, levels, { [key]: v });
+      }
+      renderLevels();
+    };
+    const onUp = async () => {
+      dragging = false;
+      el.removeEventListener('pointermove', onMove);
+      el.removeEventListener('pointerup', onUp);
+      const moved = await pushLevels();
+      if (!moved) {
+        levels = orig;
+        renderLevels();
+      } else {
+        suppressUntil = Date.now() + 2000;
+      }
+    };
+    el.addEventListener('pointermove', onMove);
+    el.addEventListener('pointerup', onUp);
+  });
 }
 
-// ---- MACD (12, 26, 9) from the visible bars ----
-function ema(values, period) {
-  const k = 2 / (period + 1);
-  const out = [];
-  let prev = values[0];
-  for (let i = 0; i < values.length; i++) {
-    prev = i === 0 ? values[0] : values[i] * k + prev * (1 - k);
-    out.push(prev);
-  }
-  return out;
-}
-function renderMacd() {
-  const data = [...bars[tf].values()].sort((a, b) => a.time - b.time);
-  if (data.length < 35) { macdHist.setData([]); macdLine.setData([]); signalLine.setData([]); return; }
-  const closes = data.map((b) => b.close);
-  const e12 = ema(closes, 12), e26 = ema(closes, 26);
-  const macd = closes.map((_, i) => e12[i] - e26[i]);
-  const signal = ema(macd, 9);
-  macdHist.setData(data.map((b, i) => ({ time: b.time, value: macd[i] - signal[i], color: macd[i] >= signal[i] ? '#26a69a55' : '#ef535055' })));
-  macdLine.setData(data.map((b, i) => ({ time: b.time, value: macd[i] })));
-  signalLine.setData(data.map((b, i) => ({ time: b.time, value: signal[i] })));
-}
-
-// ---- data ----
-function currentBarsArray() {
-  return [...bars[tf].values()].sort((a, b) => a.time - b.time);
-}
-function setTf(next) {
-  tf = next;
-  document.querySelectorAll('.tf').forEach((b) => b.classList.toggle('active', b.dataset.tf === tf));
-  priceChart.applyOptions({ timeScale: { timeVisible: tf !== '1d', secondsVisible: tf !== '1d' } });
-  macdChart.applyOptions({ timeScale: { timeVisible: tf !== '1d', secondsVisible: tf !== '1d' } });
-  priceSeries.setData(currentBarsArray());
-  renderMacd();
-  priceChart.timeScale().fitContent();
-}
-document.querySelectorAll('.tf').forEach((b) => b.addEventListener('click', () => setTf(b.dataset.tf)));
-
-// ---- SSE ----
-const es = new EventSource('/events');
-const tapeEl = $('tape');
-let lastTapePrice = null;
-
-es.onmessage = (e) => {
-  const m = JSON.parse(e.data);
-  switch (m.t) {
-    case 'conn':
-      $('dot').className = 'dot' + (m.connected ? ' on' : '');
-      $('connText').textContent = m.connected ? `connected ${m.host}:${m.ibPort}` : 'disconnected';
-      $('nextId').textContent = m.nextValidId || '-';
-      $('reconText').textContent = m.reconciled ? 'reconciled' : 'reconciling...';
-      break;
-    case 'hist':
-      bars[m.tf] = new Map(m.bars.map((b) => [b.time, b]));
-      if (m.tf === tf) { priceSeries.setData(currentBarsArray()); renderMacd(); priceChart.timeScale().fitContent(); }
-      break;
-    case 'bar':
-      bars[m.tf].set(m.bar.time, m.bar);
-      if (m.tf === tf) { priceSeries.update(m.bar); renderMacd(); }
-      break;
-    case 'tape': {
-      const tr = m.trade;
-      const row = document.createElement('div');
-      row.className = 'trow';
-      const up = lastTapePrice == null || tr.price >= lastTapePrice;
-      lastTapePrice = tr.price;
-      row.innerHTML = `<span style="color:${up ? '#26a69a' : '#ef5350'}">${tr.price.toFixed(2)}</span><span>${tr.size}</span><span>${new Date(tr.time * 1000).toLocaleTimeString()}</span>`;
-      tapeEl.prepend(row);
-      while (tapeEl.childNodes.length > 200) tapeEl.lastChild.remove();
-      break;
-    }
-    case 'tapeFull':
-      tapeEl.innerHTML = '';
-      lastTapePrice = null;
-      m.trades.slice().reverse().forEach((tr) => {
-        const row = document.createElement('div');
-        row.className = 'trow';
-        const up = lastTapePrice == null || tr.price >= lastTapePrice;
-        lastTapePrice = tr.price;
-        row.innerHTML = `<span style="color:${up ? '#26a69a' : '#ef5350'}">${tr.price.toFixed(2)}</span><span>${tr.size}</span><span>${new Date(tr.time * 1000).toLocaleTimeString()}</span>`;
-        tapeEl.prepend(row);
-      });
-      break;
-    case 'depth': {
-      const d = $('depth');
-      d.innerHTML = '';
-      m.book.asks.slice().reverse().forEach((r) => {
-        d.appendChild(depthRow(r, 'ask'));
-      });
-      d.appendChild(depthRow(null, 'mid'));
-      m.book.bids.forEach((r) => d.appendChild(depthRow(r, 'bid')));
-      break;
-    }
-    case 'bracket':
-      pendingSymbols = new Set(m.bracket._pending || []);
-      bracket = (m.bracket && m.bracket[symbol]) || null;
-      renderLegs();
-      break;
-    case 'audit': {
-      const a = $('audit');
-      a.textContent = m.line + '\n' + a.textContent;
-      break;
-    }
-    case 'info':
-      console.log(m.msg);
-      break;
-  }
-};
-
-function depthRow(r, side) {
-  const div = document.createElement('div');
-  div.className = 'drow ' + side;
-  if (!r) { div.innerHTML = '<span>--</span><span>--</span>'; return div; }
-  div.innerHTML = `<span>${r.price.toFixed(2)}</span><span>${r.size}</span>`;
-  return div;
-}
-
-// ---- legs table ----
-function renderLegs() {
-  const tb = $('legs');
-  tb.innerHTML = '';
-  if (!bracket) { showLevels(readLevels()); }
-  const busy = pendingSymbols.has(symbol) || (bracket && bracket.state !== 'closed');
-  $('arm').disabled = !!busy;
-  $('disarm').disabled = !bracket || bracket.state === 'closed';
-}
-
-// ---- actions ----
-async function post(url, body) {
+async function post(url, body){
   const r = await fetch(url, {
-    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body),
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body),
   });
   return r.json();
 }
 
-$('go').addEventListener('click', () => {
-  symbol = $('symbol').value.toUpperCase().trim();
-  $('symbol').value = symbol;
-  post('/api/symbol', { symbol });
-  tapeEl.innerHTML = '';
-});
-$('symbol').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('go').click(); });
+async function pushLevels(){
+  if (!levels.entry || !levels.target) return false;
+  if (!bracketActive) return true; // local only until activation
+  try {
+    const r = await post('/api/bracket/levels', {
+      entry: levels.entry, stop: levels.stop || 0, target: levels.target,
+    });
+    if (r.ok) {
+      $('ch-feedback').textContent = 'bracket moved';
+      return true;
+    }
+    $('ch-feedback').textContent = 'rejected: ' + (r.error || '?');
+  } catch (e) {
+    $('ch-feedback').textContent = 'server unreachable: bracket not saved';
+  }
+  return false;
+}
 
-$('arm').addEventListener('click', () => {
-  const lv = readLevels();
+// ---- level rendering ----
+function clampRow(row, y, h){
+  if (y === null || y === undefined) {
+    row.style.display = 'none';
+    return null;
+  }
+  row.style.display = 'flex';
+  if (y >= 0 && y <= h) {
+    row.style.opacity = '1';
+    row.style.top = y + 'px';
+    return 'in';
+  }
+  const clamped = Math.max(24, Math.min(h - 18, y));
+  row.style.opacity = '0.45';
+  row.style.top = clamped + 'px';
+  return y < 0 ? 'above' : 'below';
+}
+
+function legStatus(key){
+  if (!bracketActive) return { text: 'none', cls: '' };
+  const leg = key === 'entry' ? bracket.parent : key === 'stop' ? bracket.stopLeg : bracket.targetLeg;
+  const s = (leg.status || '').toLowerCase();
+  if (s === 'filled') return { text: 'filled', cls: 'filled' };
+  if (s === 'submitted' || s === 'pendingsubmit') return { text: 'submitted', cls: 'working' };
+  if (s === 'cancelled' || s === 'inactive') return { text: 'cancelled', cls: 'rejected' };
+  return { text: s || 'none', cls: '' };
+}
+
+function renderLegStatus(){
+  const h = $('ch-second').clientHeight;
+  for (const def of LEVELS) {
+    const el = legStatusEls[def.key];
+    const price = levels[def.key];
+    const y = price ? candle.priceToCoordinate(price) : null;
+    if (y === null || y === undefined) {
+      el.style.display = 'none';
+      continue;
+    }
+    const st = legStatus(def.key);
+    el.className = 'tc-ord' + (st.cls ? ' ' + st.cls : '');
+    el.textContent = st.text;
+    clampRow(el, y, h);
+  }
+}
+
+function renderLevels(){
+  const h = $('ch-second').clientHeight;
+  for (const def of LEVELS) {
+    const view = levelEls[def.key];
+    const price = levels[def.key];
+    const y = price ? candle.priceToCoordinate(price) : null;
+    const label = def.label + (def.key === 'entry' && entryLocked && bracketActive ? ' LOCKED' : '');
+    const inRange = y !== null && y !== undefined && y >= 0 && y <= h;
+    if (!inRange) {
+      if (y === null || y === undefined) {
+        view.line.style.display = 'none';
+        view.row.style.display = 'none';
+        continue;
+      }
+      const clamped = Math.max(12, Math.min(h - 12, y));
+      const above = y < 0;
+      const dir = above ? '\u25b2' : '\u25bc';
+      view.line.style.display = 'block';
+      view.line.style.top = clamped + 'px';
+      view.tag.style.top = above ? '16px' : '-13px';
+      view.tag.textContent = label + ' ' + dir + ' ' + price.toFixed(2);
+      view.row.style.display = 'flex';
+      view.row.style.opacity = '0.85';
+      view.row.style.top = clamped + 'px';
+      view.price.textContent = dir + ' ' + price.toFixed(2);
+      continue;
+    }
+    view.line.style.display = 'block';
+    view.line.style.top = y + 'px';
+    view.tag.style.top = '-13px';
+    view.tag.textContent = label + ' ' + price.toFixed(2);
+    view.row.style.display = 'flex';
+    view.row.style.opacity = '1';
+    view.row.style.top = y + 'px';
+    view.price.textContent = price.toFixed(2);
+  }
+  renderLegStatus();
+}
+
+function fitPriceScale(){
+  const data = [...bars[tf].values()].sort((a, b) => a.time - b.time);
+  if (!data.length) return false;
+  let lo = Infinity, hi = -Infinity;
+  for (const bar of data.slice(-180)) {
+    if (bar.low < lo) lo = bar.low;
+    if (bar.high > hi) hi = bar.high;
+  }
+  if (!Number.isFinite(lo) || !Number.isFinite(hi)) return false;
+  const mid = (lo + hi) / 2;
+  const tol = mid * 0.10;
+  for (const p of [levels.entry, levels.target, levels.stop]) {
+    if (Number.isFinite(p) && p > 0 && Math.abs(p - mid) <= tol) {
+      if (p < lo) lo = p;
+      if (p > hi) hi = p;
+    }
+  }
+  const pad = (hi - lo) * 0.08;
+  priceChart.priceScale('right').setVisibleRange({ from: lo - pad, to: hi + pad });
+  return true;
+}
+
+// ---- MACD (12, 26, 9) from the visible bars ----
+function emaSeries(values, period){
+  const k = 2 / (period + 1);
+  const out = new Array(values.length);
+  let prev = 0;
+  for (let i = 0; i < values.length; i++) {
+    prev = i === 0 ? values[i] : values[i] * k + prev * (1 - k);
+    out[i] = prev;
+  }
+  return out;
+}
+
+function renderMacd(){
+  const data = [...bars[tf].values()].sort((a, b) => a.time - b.time);
+  if (data.length < 35) {
+    macdHist.setData([]);
+    macdLine.setData([]);
+    signalLine.setData([]);
+    return;
+  }
+  const closes = data.map((b) => b.close);
+  const e12 = emaSeries(closes, 12);
+  const e26 = emaSeries(closes, 26);
+  const m = closes.map((_, i) => e12[i] - e26[i]);
+  const s = emaSeries(m, 9);
+  macdHist.setData(data.map((b, i) => ({
+    time: b.time,
+    value: m[i] - s[i],
+    color: m[i] - s[i] >= 0 ? 'rgba(52,179,126,0.6)' : 'rgba(239,91,107,0.6)',
+  })));
+  macdLine.setData(data.map((b, i) => ({ time: b.time, value: m[i] })));
+  signalLine.setData(data.map((b, i) => ({ time: b.time, value: s[i] })));
+}
+
+// ---- data rendering ----
+const toCandle = (b) => ({ time: b.time, open: b.open, high: b.high, low: b.low, close: b.close });
+const toVolume = (b) => ({ time: b.time, value: b.volume, color: b.close >= b.open ? 'rgba(52,179,126,0.45)' : 'rgba(239,91,107,0.45)' });
+
+function setCurrentTf(next){
+  tf = next;
+  $('ch-tf-tag').textContent = tf;
+  document.querySelectorAll('#ch-tf .tc-size-btn').forEach((b) => b.classList.toggle('active', b.dataset.tf === tf));
+  const data = [...bars[tf].values()].sort((a, b) => a.time - b.time);
+  candle.setData(data.map(toCandle));
+  volume.setData(data.map(toVolume));
+  priceChart.applyOptions({ timeScale: { timeVisible: tf !== '1d', secondsVisible: tf !== '1d' } });
+  macdChart.applyOptions({ timeScale: { timeVisible: tf !== '1d', secondsVisible: tf !== '1d' } });
+  renderMacd();
+  priceChart.timeScale().fitContent();
+  renderLevels();
+}
+
+function onHist(m){
+  bars[m.tf] = new Map(m.bars.map((b) => [b.time, b]));
+  if (m.tf === tf) {
+    const data = [...bars[tf].values()].sort((a, b) => a.time - b.time);
+    candle.setData(data.map(toCandle));
+    volume.setData(data.map(toVolume));
+    renderMacd();
+    priceChart.timeScale().fitContent();
+    renderLevels();
+  }
+  markArrived();
+}
+
+function onBar(m){
+  bars[m.tf].set(m.bar.time, m.bar);
+  if (m.tf === tf) {
+    candle.update(toCandle(m.bar));
+    volume.update(toVolume(m.bar));
+    renderMacd();
+    renderLevels();
+  }
+  markArrived();
+}
+
+// ---- tape ----
+const TAPE_MAX_ROWS = 60;
+function ensureTapeRows(n){
+  const col = $('ch-tape');
+  while (col.querySelectorAll('.tc-tape').length < n) {
+    const el = document.createElement('div');
+    el.className = 'tc-tape';
+    col.appendChild(el);
+  }
+}
+function renderTape(){
+  const rows = [...$('ch-tape').querySelectorAll('.tc-tape')];
+  tapeRows.forEach((tr, i) => {
+    if (i >= rows.length) return;
+    const row = rows[i];
+    row.className = 'tc-tape ' + (tr.dir > 0 ? 'up' : tr.dir < 0 ? 'down' : 'flat');
+    row.style.display = 'flex';
+    row.textContent = '';
+    const tm = document.createElement('span');
+    tm.className = 'tc-tape-t';
+    tm.textContent = tr.time;
+    const pr = document.createElement('span');
+    pr.className = 'tc-tape-p';
+    pr.textContent = tr.price;
+    const sz = document.createElement('span');
+    sz.className = 'tc-tape-s';
+    sz.textContent = tr.size;
+    row.appendChild(pr);
+    row.appendChild(sz);
+    row.appendChild(tm);
+  });
+  for (let i = tapeRows.length; i < rows.length; i++) rows[i].style.display = 'none';
+}
+function prependTrades(trades){
+  const items = [];
+  for (let i = trades.length - 1; i >= 0; i--) {
+    const tr = trades[i];
+    const dir = tapePrevPrice === null ? 0 : tr.price > tapePrevPrice ? 1 : tr.price < tapePrevPrice ? -1 : 0;
+    tapePrevPrice = tr.price;
+    items.push({ time: fmtEtTime(tr.time, true), price: tr.price.toFixed(2), size: tr.size, dir });
+  }
+  tapeRows = items.concat(tapeRows).slice(0, TAPE_MAX_ROWS);
+  ensureTapeRows(tapeRows.length);
+  renderTape();
+}
+
+// ---- depth ----
+const TIER_COLORS = [
+  'rgb(51,255,102)',
+  'rgb(217,102,255)',
+  'rgb(255,166,51)',
+  'rgb(79,161,255)',
+  'rgb(128,128,128)',
+];
+function tiers(rows){
+  const out = new Array(rows.length);
+  let tier = 0;
+  let prev = null;
+  for (let i = 0; i < rows.length; i++) {
+    const p = rows[i].price;
+    if (i > 0 && Math.abs(p - prev) > 1e-9) tier++;
+    out[i] = tier % TIER_COLORS.length;
+    prev = p;
+  }
+  return out;
+}
+function depthCell(text, cls, color){
+  const el = document.createElement('span');
+  el.className = 'tc-depth-cell ' + cls;
+  el.textContent = text;
+  if (color) el.style.color = color;
+  return el;
+}
+function depthGridRow(bid, ask, bidColor, askColor){
+  const el = document.createElement('div');
+  el.className = 'tc-depth-row';
+  el.appendChild(depthCell(bid ? bid.size : '', 'bid-sz', bidColor));
+  el.appendChild(depthCell(bid ? bid.price.toFixed(2) : '', 'bid-px', bidColor));
+  el.appendChild(depthCell(ask ? ask.price.toFixed(2) : '', 'ask-px', askColor));
+  el.appendChild(depthCell(ask ? ask.size : '', 'ask-sz', askColor));
+  // MM columns stay empty: this feed aggregates per price level.
+  el.insertBefore(depthCell('', 'bid-mm', bidColor), el.firstChild);
+  el.appendChild(depthCell('', 'ask-mm', askColor));
+  return el;
+}
+function renderDepth(){
+  const col = $('ch-depth');
+  col.querySelectorAll('.tc-depth-row').forEach((r) => r.remove());
+  const n = Math.max(depthBids.length, depthAsks.length);
+  const bidTiers = tiers(depthBids);
+  const askTiers = tiers(depthAsks);
+  for (let i = 0; i < n; i++) {
+    const b = depthBids[i];
+    const a = depthAsks[i];
+    col.appendChild(depthGridRow(
+      b, a,
+      b ? TIER_COLORS[bidTiers[i]] : '',
+      a ? TIER_COLORS[askTiers[i]] : '',
+    ));
+  }
+}
+
+// ---- symbol switch ----
+let switchSlowTimer = null;
+let switchHideTimer = null;
+function showSwitching(sym){
+  const pill = $('ch-switch-pill');
+  pill.style.display = 'inline-flex';
+  $('ch-switch-dot').className = 'dot wait';
+  $('ch-switch-text').textContent = 'Switching to ' + sym + '…';
+  $('ch-second').appendChild(loadingEl);
+  loadingEl.textContent = 'Loading ' + sym + '…';
+  loadingEl.style.display = 'flex';
+  if (switchSlowTimer) clearTimeout(switchSlowTimer);
+  if (switchHideTimer) clearTimeout(switchHideTimer);
+  switchSlowTimer = setTimeout(() => {
+    if ($('ch-switch-dot').className !== 'dot wait') return;
+    $('ch-switch-dot').className = 'dot down';
+    $('ch-switch-text').textContent = 'Feed slow, retrying';
+  }, 30000);
+}
+function markArrived(){
+  if ($('ch-switch-pill').style.display === 'none') return;
+  loadingEl.style.display = 'none';
+  if (switchSlowTimer) { clearTimeout(switchSlowTimer); switchSlowTimer = null; }
+  $('ch-switch-dot').className = 'dot up';
+  $('ch-switch-text').textContent = 'Streaming ' + symbol;
+  if (switchHideTimer) clearTimeout(switchHideTimer);
+  switchHideTimer = setTimeout(() => { $('ch-switch-pill').style.display = 'none'; }, 4000);
+}
+const loadingEl = document.createElement('div');
+loadingEl.className = 'tc-loading';
+loadingEl.style.display = 'none';
+
+function resetCharts(){
+  bars = { '10s': new Map(), '1m': new Map(), '1d': new Map() };
+  tapeRows = [];
+  tapePrevPrice = null;
+  depthBids = [];
+  depthAsks = [];
+  candle.setData([]);
+  volume.setData([]);
+  macdHist.setData([]);
+  macdLine.setData([]);
+  signalLine.setData([]);
+  renderTape();
+  renderDepth();
+}
+
+function setSymbol(sym){
+  const next = (sym || '').trim().toUpperCase();
+  if (!next || next === symbol) return;
+  symbol = next;
+  try { localStorage.setItem(SYMBOL_KEY, symbol); } catch (e) {}
+  $('ch-sym').textContent = symbol;
+  levels = {};
+  lastPrice = null;
+  needsPriceFit = true;
+  resetCharts();
+  showSwitching(symbol);
+  post('/api/symbol', { symbol });
+}
+
+$('ch-form').addEventListener('submit', (ev) => {
+  ev.preventDefault();
+  const t = $('ch-input').value.trim().toUpperCase();
+  if (!t) return;
+  setSymbol(t);
+  $('ch-input').value = '';
+  $('ch-feedback').textContent = 'switch ' + t + ' sent';
+});
+
+// ---- defaults ----
+const DEFAULT_PCT = 0.01;
+function legDistance(entry){
+  if (entry < 50) return 0.05;
+  if (entry < 100) return 0.10;
+  return Math.round(entry * DEFAULT_PCT * 100) / 100;
+}
+function defaultLevels(price){
+  const cached = defaults[symbol];
+  if (cached && Math.abs(price - cached.entry) <= cached.entry * 0.05) return cached;
+  const entry = Math.round(price * 100) / 100;
+  const dist = legDistance(entry);
+  defaults[symbol] = {
+    entry,
+    target: Math.round((entry + dist) * 100) / 100,
+    stop: Math.round((entry - dist) * 100) / 100,
+  };
+  return defaults[symbol];
+}
+
+// ---- bracket state from the server ----
+function readServerLevels(){
+  if (bracketActive) {
+    levels = {
+      entry: bracket.entry > 0 ? bracket.entry : null,
+      target: bracket.target > 0 ? bracket.target : null,
+      stop: bracket.stop > 0 ? bracket.stop : null,
+    };
+    return;
+  }
+  if (lastPrice) {
+    levels = defaultLevels(lastPrice);
+    return;
+  }
+  levels = {};
+}
+
+function renderArm(){
+  const b = $('ch-arm');
+  b.textContent = bracketActive ? 'BRACKET ENABLE' : 'BRACKET DISABLE';
+  b.classList.toggle('active', bracketActive);
+  b.disabled = cancelInFlight;
+}
+
+function renderPosition(){
+  const filled = bracketActive ? bracket.parent.filled : 0;
+  const avg = bracketActive ? bracket.parent.avgPrice : 0;
+  const pnl = filled > 0 && lastPrice ? (lastPrice - avg) * filled : 0;
+  $('ch-pos-shares').textContent = 'POSITION: ' + filled;
+  $('ch-pos-pl').textContent = 'PNL: $' + pnl.toFixed(2);
+}
+
+function syncBracket(m){
+  cancelInFlight = !!m._pending;
+  bracket = m.current;
+  bracketActive = !!(bracket && bracket.state !== 'closed');
+  entryLocked = !!(bracket && bracket.entryLocked);
+  levelEls.entry.tag.classList.toggle('tc-locked', entryLocked && bracketActive);
+  levelEls.entry.row.classList.toggle('tc-locked', entryLocked && bracketActive);
+  if (!dragging && Date.now() >= suppressUntil) readServerLevels();
+  renderArm();
+  renderLevels();
+  renderPosition();
+}
+
+// ---- activate / deactivate toggle ----
+$('ch-arm').addEventListener('click', () => {
+  if (bracketActive) {
+    post('/api/bracket/deactivate', { reason: 'gui deactivate' }).then((r) => {
+      $('ch-feedback').textContent = r.ok ? 'bracket deactivated' : 'rejected: ' + (r.error || '?');
+    }).catch(() => { $('ch-feedback').textContent = 'server unreachable'; });
+    return;
+  }
+  if (!levels.entry || !levels.target) {
+    $('ch-feedback').textContent = 'no bracket levels';
+    return;
+  }
   $('confirmText').textContent =
-    `${symbol}  qty=${$('qty').value}  ${$('otype').value}  entry=${lv.entry || 'market'}  stop=${lv.stop}  target=${lv.target}`;
+    `${symbol}  qty=${qty}  ${orderType}  entry=${levels.entry}  stop=${levels.stop || 'none'}  target=${levels.target}`;
   $('modal').style.display = 'flex';
 });
 $('confirmNo').addEventListener('click', () => { $('modal').style.display = 'none'; });
 $('modal').addEventListener('click', (e) => { if (e.target.id === 'modal') $('modal').style.display = 'none'; });
 $('confirmYes').addEventListener('click', async () => {
   $('modal').style.display = 'none';
-  const lv = readLevels();
-  const r = await post('/api/arm', {
-    symbol, qty: Number($('qty').value), entry: lv.entry || 0,
-    stop: lv.stop, target: lv.target, orderType: $('otype').value,
-  });
-  if (!r.ok) alert(r.error);
+  try {
+    const r = await post('/api/bracket/activate', {
+      symbol,
+      qty,
+      entry: levels.entry || 0,
+      stop: levels.stop || 0,
+      target: levels.target,
+      orderType,
+    });
+    $('ch-feedback').textContent = r.ok ? 'bracket activated' : 'rejected: ' + (r.error || '?');
+  } catch (e) {
+    $('ch-feedback').textContent = 'server unreachable';
+  }
 });
-$('disarm').addEventListener('click', async () => {
-  const r = await post('/api/disarm', { symbol, reason: 'gui disarm' });
-  if (!r.ok) alert(r.error);
+
+// ---- size, type, tf, reset ----
+$('ch-size').addEventListener('click', (ev) => {
+  const btn = ev.target.closest('.tc-size-btn');
+  if (!btn) return;
+  qty = parseInt(btn.dataset.qty, 10);
+  document.querySelectorAll('#ch-size .tc-size-btn').forEach((b) => b.classList.toggle('active', b === btn));
+  $('ch-feedback').textContent = 'size ' + qty;
+});
+$('ch-otype').addEventListener('click', (ev) => {
+  const btn = ev.target.closest('.tc-size-btn');
+  if (!btn) return;
+  orderType = btn.dataset.ot;
+  document.querySelectorAll('#ch-otype .tc-size-btn').forEach((b) => b.classList.toggle('active', b === btn));
+  $('ch-feedback').textContent = 'type ' + orderType;
+});
+$('ch-tf').addEventListener('click', (ev) => {
+  const btn = ev.target.closest('.tc-size-btn');
+  if (!btn || btn.dataset.tf === tf) return;
+  setCurrentTf(btn.dataset.tf);
+});
+$('ch-reset').addEventListener('click', () => {
+  if (bracketActive) {
+    $('ch-feedback').textContent = 'bracket working, deactivate first';
+    return;
+  }
+  if (!lastPrice || lastPrice <= 0) {
+    $('ch-feedback').textContent = 'no quote';
+    return;
+  }
+  delete defaults[symbol];
+  levels = defaultLevels(lastPrice);
+  needsPriceFit = true;
+  renderLevels();
+  renderArm();
+  if (fitPriceScale()) needsPriceFit = false;
+  $('ch-feedback').textContent = 'bracket reset';
 });
 
-new ResizeObserver(() => { priceChart.applyOptions({ width: $('priceChart').clientWidth }); }).observe($('priceChart'));
-new ResizeObserver(() => { macdChart.applyOptions({ width: $('macdChart').clientWidth }); }).observe($('macdChart'));
+// ---- SSE ----
+const es = new EventSource('/events');
+es.onmessage = (e) => {
+  const m = JSON.parse(e.data);
+  switch (m.t) {
+    case 'conn': {
+      const up = !!m.connected;
+      $('conn-dot').className = 'dot' + (up ? (m.reconciled ? ' up' : ' wait') : ' down');
+      $('conn-text').textContent = up
+        ? `${m.host}:${m.ibPort} id ${m.nextValidId || '-'}${m.reconciled ? '' : ' reconciling...'}`
+        : 'disconnected';
+      break;
+    }
+    case 'hist':
+      onHist(m);
+      break;
+    case 'bar':
+      onBar(m);
+      break;
+    case 'tape': {
+      lastPrice = m.trade.price;
+      prependTrades([m.trade]);
+      if (!dragging) renderPosition();
+      break;
+    }
+    case 'tapeFull':
+      tapeRows = [];
+      tapePrevPrice = null;
+      prependTrades(m.trades.slice().reverse());
+      break;
+    case 'depth':
+      depthBids = m.book.bids || [];
+      depthAsks = m.book.asks || [];
+      renderDepth();
+      markArrived();
+      break;
+    case 'bracket':
+      syncBracket(m.bracket);
+      break;
+    case 'info':
+      console.log(m.msg);
+      break;
+  }
+};
 
-// pixel y for a price, used by the e2e drag test
-window.__priceToY = (p) => priceSeries.priceToCoordinate(p);
+// keep the side columns aligned with the price pane height
+function syncSide(){
+  try {
+    const panes = priceChart.panes();
+    const sideCols = document.querySelector('.ch-side-cols');
+    if (panes.length >= 2 && panes[0].getHeight() > 0) {
+      sideCols.style.height = panes[0].getHeight() + 'px';
+      sideCols.style.flex = 'none';
+    }
+  } catch (e) {}
+}
+setTimeout(syncSide, 200);
+setInterval(syncSide, 1000);
+window.addEventListener('resize', syncSide);
+priceChart.timeScale().subscribeVisibleLogicalRangeChange(() => renderLevels());
 
-$('go').click();
+// keep display levels, leg states, and the side columns fresh even
+// when no bracket event fires (first tape after a symbol switch)
+setInterval(() => {
+  if (!dragging && Date.now() >= suppressUntil) {
+    readServerLevels();
+    renderLevels();
+  }
+  renderPosition();
+}, 1000);
+
+window.__priceToY = (p) => candle.priceToCoordinate(p);
+
+$('ch-sym').textContent = symbol;
+showSwitching(symbol);
+post('/api/symbol', { symbol });
+})();
 </script>
 </body>
 </html>

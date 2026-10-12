@@ -17,7 +17,7 @@ function argVal(name: string, dflt: string): string {
 
 export const state = {
   host: argVal("--host", "127.0.0.1"),
-  ibPort: Number(argVal("--ibport", "4002")),
+  ibPort: Number(argVal("--ibport", "4001")),
   webPort: Number(argVal("--port", "8080")),
   clientId: 90,
   connected: false,
@@ -68,12 +68,15 @@ function wire(): void {
     state.connected = true;
     emit({ t: "conn", ...state });
     console.log(`connected to ${state.host}:${state.ibPort}`);
+    // The gateway replays this client's open orders right after
+    // connect, before nextValidId. Reconcile must already be open.
+    bracket.beginReconcile();
   });
 
   on(EventName.disconnected, () => {
     state.connected = false;
     state.reconciled = false;
-    bracket.blockArms();
+    bracket.blockActivations();
     emit({ t: "conn", ...state });
     console.log("disconnected, retrying in 5s");
     setTimeout(connect, 5000);
@@ -82,7 +85,6 @@ function wire(): void {
   on(EventName.nextValidId, (orderId: number) => {
     state.nextValidId = Math.max(state.nextValidId, orderId);
     idCounter = state.nextValidId;
-    if (!state.reconciled) bracket.beginReconcile();
     emit({ t: "conn", ...state });
   });
 
@@ -152,9 +154,9 @@ function wire(): void {
 
   on(
     EventName.tickByTickAllLast,
-    (reqId: number, time: number, price: number, size: number,
+    (reqId: number, tickType: number, time: string, price: number, size: number,
      attrib: any, exchange: string, specialConditions: string) => {
-      chart.onTick(reqId, time, price, size);
+      chart.onTick(reqId, Number(time), price, size);
     }
   );
 

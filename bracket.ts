@@ -1,5 +1,6 @@
-// One bracket state machine per symbol.
-// Arm, disarm, entry lock, cancel-replace before any fill,
+// One bracket state machine for the whole app. A single live bracket
+// at a time, whatever the symbol.
+// Activate, deactivate, entry lock, cancel-replace before any fill,
 // same-order-ID modify of the children after a fill.
 
 import { OrderAction, OrderType } from "@stoqey/ib";
@@ -29,63 +30,54 @@ export interface Bracket {
   ocaGroup: string;
 }
 
-const brackets = new Map<string, Bracket>();
+let current: Bracket | undefined; // the live bracket, if any
+let lastClosed: Bracket | undefined; // kept so the GUI can show final leg states
 const legIndex = new Map<number, { br: Bracket; leg: "parent" | "stop" | "target" }>();
 
-let armsBlocked = true;
+let activationsBlocked = true;
 let reconcilePending = { openOrders: false, positions: false };
 let reconcileTimer: ReturnType<typeof setTimeout> | null = null;
 
 // Order IDs waiting for a Cancelled/Inactive ack from the gateway.
-// While a symbol has pending cancels, arm and cancel-replace for that
-// symbol are refused. This keeps two brackets from ever coexisting.
-const pendingCancels = new Map<string, Set<number>>();
-const pendingTimers = new Map<string, ReturnType<typeof setTimeout>>();
+// While any cancel is pending, activation and cancel-replace are
+// refused. This keeps two brackets from ever coexisting.
+const pendingCancelIds = new Set<number>();
+let pendingTimer: ReturnType<typeof setTimeout> | null = null;
 
-function markPending(symbol: string, orderIds: number[]): void {
+function markPending(orderIds: number[]): void {
   if (!orderIds.length) return;
-  let s = pendingCancels.get(symbol);
-  if (!s) {
-    s = new Set();
-    pendingCancels.set(symbol, s);
-  }
-  for (const id of orderIds) s.add(id);
-  clearTimeout(pendingTimers.get(symbol));
-  pendingTimers.set(
-    symbol,
-    setTimeout(() => {
-      pendingCancels.delete(symbol);
-      pendingTimers.delete(symbol);
-      emit({ t: "bracket", symbol, bracket: snapshot() });
-    }, 10000)
-  );
+  for (const id of orderIds) pendingCancelIds.add(id);
+  if (pendingTimer) clearTimeout(pendingTimer);
+  pendingTimer = setTimeout(() => {
+    pendingCancelIds.clear();
+    pendingTimer = null;
+    emit({ t: "bracket", bracket: snapshot() });
+  }, 10000);
 }
 
-function resolvePending(br: Bracket, orderId: number): void {
-  const s = pendingCancels.get(br.symbol);
-  if (!s || !s.delete(orderId)) return;
-  if (s.size === 0) {
-    clearTimeout(pendingTimers.get(br.symbol));
-    pendingTimers.delete(br.symbol);
-    pendingCancels.delete(br.symbol);
-    emit({ t: "bracket", symbol: br.symbol, bracket: snapshot() });
+function resolvePending(orderId: number): void {
+  if (!pendingCancelIds.delete(orderId)) return;
+  if (pendingCancelIds.size === 0) {
+    if (pendingTimer) clearTimeout(pendingTimer);
+    pendingTimer = null;
+    emit({ t: "bracket", bracket: snapshot() });
   }
 }
 
-function cancelsInFlight(symbol: string): boolean {
-  return (pendingCancels.get(symbol)?.size ?? 0) > 0;
+function cancelsInFlight(): boolean {
+  return pendingCancelIds.size > 0;
 }
 
-export function get(symbol: string): Bracket | undefined {
-  return brackets.get(symbol);
+export function get(): Bracket | undefined {
+  return current;
 }
 
-export function blockArms(): void {
-  armsBlocked = true;
+export function blockActivations(): void {
+  activationsBlocked = true;
 }
 
 export function beginReconcile(): void {
-  armsBlocked = true;
+  activationsBlocked = true;
   reconcilePending = { openOrders: true, positions: true };
   if (reconcileTimer) clearTimeout(reconcileTimer);
   reconcileTimer = setTimeout(finishReconcileIfDone, 5000);
@@ -93,7 +85,7 @@ export function beginReconcile(): void {
     ibmod.ib.reqOpenOrders();
     ibmod.ib.reqPositions();
   } catch {
-    /* connection not ready, the timer fallback releases arms */
+    /* connection not ready, the timer fallback releases activations */
   }
   emit({ t: "conn", ...ibmod.state });
 }
@@ -104,18 +96,18 @@ export function onReconcileStep(which: "openOrders" | "positions"): void {
 }
 
 function finishReconcileIfDone(): void {
-  if (armsBlocked && !reconcilePending.openOrders && !reconcilePending.positions) {
-    armsBlocked = false;
+  if (activationsBlocked && !reconcilePending.openOrders && !reconcilePending.positions) {
+    activationsBlocked = false;
     ibmod.state.reconciled = true;
     if (reconcileTimer) clearTimeout(reconcileTimer);
     reconcileTimer = null;
-    audit("reconcile", "open orders and positions replayed, arms open");
+    audit("reconcile", "open orders and positions replayed, activations open");
     emit({ t: "conn", ...ibmod.state });
-    emit({ t: "bracket", symbol: "*", bracket: snapshot() });
+    emit({ t: "bracket", bracket: snapshot() });
   }
 }
 
-export interface ArmParams {
+export interface ActivateParams {
   symbol: string;
   qty: number;
   entry: number;
@@ -124,17 +116,17 @@ export interface ArmParams {
   orderType: "LMT" | "MKT";
 }
 
-export function arm(p: ArmParams, replacing = false): { ok: boolean; error?: string } {
-  if (armsBlocked || !ibmod.state.reconciled) {
-    return { ok: false, error: "arms blocked until reconnect reconcile finishes" };
+export function activate(p: ActivateParams, replacing = false): { ok: boolean; error?: string } {
+  if (activationsBlocked || !ibmod.state.reconciled) {
+    return { ok: false, error: "activation blocked until reconnect reconcile finishes" };
   }
-  // A cancel-replace re-arms as one indivisible step and is exempt
+  // A cancel-replace re-activates as one indivisible step and is exempt
   // from its own pending-cancels barrier.
-  if (!replacing && cancelsInFlight(p.symbol)) {
-    return { ok: false, error: `cancel in flight for ${p.symbol}, wait for acks` };
+  if (!replacing && cancelsInFlight()) {
+    return { ok: false, error: "cancel in flight, wait for acks" };
   }
-  if (brackets.has(p.symbol) && brackets.get(p.symbol)!.state !== "closed") {
-    return { ok: false, error: `bracket already working for ${p.symbol}` };
+  if (current && current.state !== "closed") {
+    return { ok: false, error: `bracket already working for ${current.symbol}` };
   }
   if (p.orderType === "LMT" && !(p.entry > 0)) {
     return { ok: false, error: "entry price required for limit parent" };
@@ -198,32 +190,35 @@ export function arm(p: ArmParams, replacing = false): { ok: boolean; error?: str
     outsideRth: true,
   };
 
-  brackets.set(p.symbol, br);
+  current = br;
   indexLegs(br);
   ibmod.place(contract, parent);
   ibmod.place(contract, stopOrder);
   ibmod.place(contract, targetOrder);
-  audit("arm", `${p.symbol} qty=${p.qty} ${p.orderType} entry=${p.entry} stop=${p.stop} target=${p.target} parent=${parentId} stop=${stopId} target=${targetId}`);
-  emit({ t: "bracket", symbol: p.symbol, bracket: snapshot() });
+  audit("activate", `${p.symbol} qty=${p.qty} ${p.orderType} entry=${p.entry} stop=${p.stop} target=${p.target} parent=${parentId} stop=${stopId} target=${targetId}`);
+  emit({ t: "bracket", bracket: snapshot() });
   return { ok: true };
 }
 
-export function disarm(symbol: string, reason: string): { ok: boolean; error?: string } {
-  const br = brackets.get(symbol);
-  if (!br) return { ok: false, error: `no bracket for ${symbol}` };
+const TERMINAL = ["Filled", "Cancelled", "Inactive", "ApiCancelled"];
+
+export function deactivate(reason: string): { ok: boolean; error?: string } {
+  const br = current;
+  if (!br) return { ok: false, error: "no bracket" };
   // Cancel is the escape hatch. It never waits for anything and is
-  // always allowed. New arms for this symbol wait for the acks.
+  // always allowed. New activations wait for the acks.
   const sent: number[] = [];
   for (const leg of [br.parent, br.stopLeg, br.targetLeg]) {
-    if (!["Filled", "Cancelled", "Inactive"].includes(leg.status)) {
+    if (!TERMINAL.includes(leg.status)) {
       ibmod.cancel(leg.orderId);
       sent.push(leg.orderId);
     }
   }
-  markPending(symbol, sent);
+  markPending(sent);
   br.state = "closed";
-  audit("disarm", `${symbol}: ${reason}`);
-  emit({ t: "bracket", symbol, bracket: snapshot() });
+  lastClosed = br;
+  audit("deactivate", `${br.symbol}: ${reason}`);
+  emit({ t: "bracket", bracket: snapshot() });
   return { ok: true };
 }
 
@@ -233,12 +228,13 @@ export interface Levels {
   target?: number;
 }
 
-export function editLevels(symbol: string, lv: Levels): { ok: boolean; error?: string } {
-  const br = brackets.get(symbol);
-  if (!br) return { ok: false, error: `no bracket for ${symbol}` };
-  if (br.state === "closed") return { ok: false, error: `bracket for ${symbol} is closed` };
-  if (!br.entryLocked && cancelsInFlight(symbol)) {
-    return { ok: false, error: `cancel-replace in flight for ${symbol}` };
+export function editLevels(lv: Levels): { ok: boolean; error?: string } {
+  const br = current;
+  if (!br) return { ok: false, error: "no bracket" };
+  if (br.state === "closed") return { ok: false, error: "bracket is closed" };
+  const symbol = br.symbol;
+  if (!br.entryLocked && cancelsInFlight()) {
+    return { ok: false, error: "cancel-replace in flight" };
   }
 
   const entry = lv.entry ?? br.entry;
@@ -251,16 +247,18 @@ export function editLevels(symbol: string, lv: Levels): { ok: boolean; error?: s
     br.state = "closed";
     const sent: number[] = [];
     for (const leg of [br.parent, br.stopLeg, br.targetLeg]) {
-      if (!["Filled", "Cancelled", "Inactive"].includes(leg.status)) {
+      if (!TERMINAL.includes(leg.status)) {
         ibmod.cancel(leg.orderId);
         sent.push(leg.orderId);
       }
     }
-    markPending(symbol, sent);
-    brackets.delete(symbol);
-    for (const leg of [br.parent, br.stopLeg, br.targetLeg]) legIndex.delete(leg.orderId);
+    markPending(sent);
+    current = undefined;
+    lastClosed = br;
+    // Keep the old legs in legIndex until their terminal status
+    // arrives, so the cancel acks still land and resolve the pending set.
     audit("replace", `${symbol}: cancel parent=${br.parent.orderId} stop=${br.stopLeg.orderId} target=${br.targetLeg.orderId}`);
-    return arm({
+    return activate({
       symbol,
       qty: br.qty,
       entry,
@@ -305,7 +303,7 @@ export function editLevels(symbol: string, lv: Levels): { ok: boolean; error?: s
     outsideRth: true,
   });
   audit("modify", `${symbol}: stop=${stop} target=${target} on ids ${br.stopLeg.orderId}/${br.targetLeg.orderId}`);
-  emit({ t: "bracket", symbol, bracket: snapshot() });
+  emit({ t: "bracket", bracket: snapshot() });
   return { ok: true };
 }
 
@@ -326,20 +324,22 @@ export function onOrderStatus(
   l.avgPrice = avgFillPrice || l.avgPrice;
 
   if (leg === "parent" && filled > 0) {
+    positions.set(br.symbol, filled);
     br.entryLocked = true;
     if (br.state === "working") br.state = "partial";
   }
   if ((leg === "stop" || leg === "target") && status === "Filled" && br.state !== "closed") {
+    positions.set(br.symbol, 0);
     br.state = "closed";
   }
   if (status === "Filled") {
     audit("fill", `${br.symbol} ${leg} order=${orderId} filled=${filled} avg=${avgFillPrice}`);
   }
-  if (status === "Cancelled" || status === "Inactive") {
-    resolvePending(br, orderId);
+  if (status === "Cancelled" || status === "Inactive" || status === "ApiCancelled") {
+    resolvePending(orderId);
     audit("cancel-ack", `${br.symbol} ${leg} order=${orderId} ${status}`);
   }
-  emit({ t: "bracket", symbol: br.symbol, bracket: snapshot() });
+  emit({ t: "bracket", bracket: snapshot() });
 }
 
 // Reconcile: rebuild a working bracket we find resting at the gateway.
@@ -359,8 +359,7 @@ export function onOpenOrder(orderId: number, symbol: string, order: any): void {
   }
   const parent = reconcileParents.get(order.parentId);
   if (!parent) return;
-  const key = `${parent.symbol}`;
-  let br = brackets.get(key);
+  let br = current;
   if (!br || br.state === "closed") {
     br = {
       symbol: parent.symbol,
@@ -374,9 +373,9 @@ export function onOpenOrder(orderId: number, symbol: string, order: any): void {
       parent: { orderId: parent.order.orderId ?? order.parentId, status: "Submitted", filled: 0, avgPrice: 0 },
       stopLeg: { orderId: 0, status: "none", filled: 0, avgPrice: 0 },
       targetLeg: { orderId: 0, status: "none", filled: 0, avgPrice: 0 },
-      ocaGroup: order.ocaGroup || `br-${key}-${order.parentId}`,
+      ocaGroup: order.ocaGroup || `br-${parent.symbol}-${order.parentId}`,
     };
-    brackets.set(key, br);
+    current = br;
     indexLegs(br);
   }
   if (order.orderType === "STP") {
@@ -387,8 +386,8 @@ export function onOpenOrder(orderId: number, symbol: string, order: any): void {
     br.target = order.lmtPrice;
   }
   indexLegs(br);
-  audit("reconcile-order", `${key}: found ${order.orderType} order ${orderId} parent=${order.parentId}`);
-  emit({ t: "bracket", symbol: key, bracket: snapshot() });
+  audit("reconcile-order", `${br.symbol}: found ${order.orderType} order ${orderId} parent=${order.parentId}`);
+  emit({ t: "bracket", bracket: snapshot() });
 }
 
 // Positions seen on the account, per symbol. Independent source of
@@ -397,13 +396,13 @@ const positions = new Map<string, number>();
 
 export function onPosition(symbol: string, pos: number): void {
   positions.set(symbol, pos);
-  const br = brackets.get(symbol);
-  if (!br) return;
+  const br = current;
+  if (!br || br.symbol !== symbol) return;
   if (Math.abs(pos) > 0 && !br.entryLocked) {
     br.entryLocked = true;
     br.state = "partial";
     audit("reconcile-position", `${symbol}: position ${pos}, entry locked`);
-    emit({ t: "bracket", symbol, bracket: snapshot() });
+    emit({ t: "bracket", bracket: snapshot() });
   }
 }
 
@@ -413,16 +412,16 @@ function indexLegs(br: Bracket): void {
   if (br.targetLeg.orderId) legIndex.set(br.targetLeg.orderId, { br, leg: "target" });
 }
 
-export function pending(): string[] {
-  return [...pendingCancels.keys()];
+export function pending(): boolean {
+  return cancelsInFlight();
 }
 
-export function workingSymbols(): string[] {
-  return [...brackets.entries()].filter(([, b]) => b.state !== "closed").map(([s]) => s);
+export function hasWorking(): boolean {
+  return !!current && current.state !== "closed";
 }
 
 // Close whatever position the account holds for a symbol. Needed
-// when a filled bracket was disarmed and the children that would
+// when a filled bracket was deactivated and the children that would
 // have exited the position are gone.
 export function flatten(symbol: string): { ok: boolean; error?: string } {
   const pos = positions.get(symbol) ?? 0;
@@ -442,8 +441,8 @@ export function flatten(symbol: string): { ok: boolean; error?: string } {
 }
 
 export function snapshot(): Record<string, unknown> {
-  const out: Record<string, unknown> = {};
-  for (const [k, v] of brackets) out[k] = v;
-  out._pending = [...pendingCancels.keys()];
-  return out;
+  return {
+    current: current ?? lastClosed ?? null,
+    _pending: cancelsInFlight(),
+  };
 }
