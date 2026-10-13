@@ -174,3 +174,21 @@ work must transfer cleanly between them (copied from
   `test/run-all.sh`) fails the run on any drift. Tests convert to
   TypeScript against these types last; until then they share the
   definitions by convention, not by import.
+
+## Acronyms
+
+- IBKR: Interactive Brokers, the broker the app connects to
+- IB Gateway: IBKR's headless API server; TWS is the desktop
+  workstation, same API through a different program
+- TWS: Trader Workstation, IBKR's desktop app, paper port 7497
+- SSE: Server-Sent Events, the one-way push pipes (/events, /market)
+  that stream updates from the app to the browser
+- OCA: One-Cancels-All, an IB order group where filling one order
+  cancels the others. The stop and target legs share one OCA group
+- RTH: Regular Trading Hours, 09:30 to 16:00 ET. Outside RTH the
+  venues accept limit orders only
+- ET: Eastern Time, the timezone all session rules use
+- LMT: limit order, fills at the named price or better
+- MKT: market order, fills at whatever the book offers; not accepted
+  outside RTH
+- STP: stop order, becomes a market order once the stop price trades
