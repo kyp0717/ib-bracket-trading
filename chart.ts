@@ -1,8 +1,8 @@
 
-import { BarSizeSetting, TickByTickDataType, WhatToShow } from "@stoqey/ib";
+import { BarSizeSetting, Stock, TickByTickDataType, WhatToShow } from "@stoqey/ib";
 import * as ibmod from "./ib";
 import { emit } from "./emit";
-import type { Bar, DepthBook, Trade } from "./wire";
+import type { Bar, DepthBook, DepthLevel, Trade } from "./wire";
 
 export type { Bar, Trade } from "./wire";
 
@@ -21,10 +21,32 @@ const buckets: Record<"10s" | "1m", Map<number, Bar>> = {
 };
 const daily: Bar[] = [];
 const tape: Trade[] = [];
-const book: { bids: Map<number, { price: number; size: number }>; asks: Map<number, { price: number; size: number }> } = {
-  bids: new Map(),
-  asks: new Map(),
-};
+interface VenueBook {
+  venue: string;
+  smart: boolean;
+  bids: Map<number, DepthLevel>;
+  asks: Map<number, DepthLevel>;
+}
+
+const books = new Map<number, VenueBook>();
+let cdReqId = 0;
+
+const DEPTH_ROWS = 10;
+const DEPTH_VENUE_LIMIT = 3;
+const VENUE_PRIORITY = ["NASDAQ", "ARCA", "BATS", "IEX", "NYSE", "ISLAND", "CHX", "NYSENAT"];
+
+function pickVenues(primary: string, validCsv: string): string[] {
+  const valid = new Set(validCsv.split(",").map((s) => s.trim()).filter(Boolean));
+  const out: string[] = [];
+  const add = (v: string) => {
+    const ex = v.trim();
+    if (ex && ex !== "SMART" && valid.has(ex) && !out.includes(ex) && out.length < DEPTH_VENUE_LIMIT) out.push(ex);
+  };
+  add(primary);
+  for (const v of VENUE_PRIORITY) add(v);
+  return out;
+}
+
 const TAPE_MAX = 300;
 
 export function getSymbol(): string {
@@ -39,8 +61,7 @@ export function setSymbol(sym: string): void {
   buckets["1m"].clear();
   daily.length = 0;
   tape.length = 0;
-  book.bids.clear();
-  book.asks.clear();
+  books.clear();
 
   const contract = ibmod.contractFor(symbol);
   reqIds = {
@@ -49,7 +70,6 @@ export function setSymbol(sym: string): void {
     hist1m: ibmod.takeOrderIds(1),
     hist1d: ibmod.takeOrderIds(1),
     tape: ibmod.takeOrderIds(1),
-    depth: ibmod.takeOrderIds(1),
   };
 
   try {
@@ -59,7 +79,8 @@ export function setSymbol(sym: string): void {
     ibmod.ib.reqHistoricalData(reqIds.hist1d, contract, "", "6 M", BarSizeSetting.DAYS_ONE, WhatToShow.TRADES, 1, 2, false);
     ibmod.ib.reqTickByTickData(reqIds.tape, contract, TickByTickDataType.AllLast, 0, false);
 
-    ibmod.ib.reqMktDepth(reqIds.depth, contract, 10, true);
+    cdReqId = ibmod.takeOrderIds(1);
+    ibmod.ib.reqContractDetails(cdReqId, contract);
   } catch (e) {
     console.error("subscribe failed", e);
   }
@@ -74,7 +95,9 @@ function cancelAll(): void {
     ibmod.ib.cancelHistoricalData(reqIds.hist1m);
     ibmod.ib.cancelHistoricalData(reqIds.hist1d);
     ibmod.ib.cancelTickByTickData(reqIds.tape);
-    ibmod.ib.cancelMktDepth(reqIds.depth, true);
+    for (const [vid, vb] of books) {
+      ibmod.ib.cancelMktDepth(vid, vb.smart);
+    }
   } catch (e) {
     console.error("cancel failed", e);
   }
@@ -140,18 +163,44 @@ export function onTick(reqId: number, time: number, price: number, size: number)
   emit("market", { t: "tape", trade });
 }
 
+export function onContractDetails(reqId: number, primary: string, validCsv: string): void {
+  if (reqId !== cdReqId) return;
+  for (const venue of pickVenues(primary, validCsv)) {
+    const vid = ibmod.takeOrderIds(1);
+    books.set(vid, { venue, smart: false, bids: new Map(), asks: new Map() });
+    ibmod.ib.reqMktDepth(vid, new Stock(symbol, venue, "USD"), DEPTH_ROWS, false);
+  }
+}
+
+export function onContractDetailsEnd(reqId: number): void {
+  if (reqId !== cdReqId) return;
+  if (books.size > 0) return;
+  const vid = ibmod.takeOrderIds(1);
+  books.set(vid, { venue: "SMART", smart: true, bids: new Map(), asks: new Map() });
+  ibmod.ib.reqMktDepth(vid, ibmod.contractFor(symbol), DEPTH_ROWS, true);
+}
+
 export function onDepth(reqId: number, pos: number, op: number, side: number, price: number, size: number): void {
-  if (reqId !== reqIds.depth) return;
-  const m = side === 1 ? book.bids : book.asks;
+  const vb = books.get(reqId);
+  if (!vb) return;
+  const m = side === 1 ? vb.bids : vb.asks;
   if (op === 2) m.delete(pos);
-  else m.set(pos, { price, size });
+  else m.set(pos, { price, size, mm: vb.venue });
   emit("market", { t: "depth", book: bookSnapshot() });
 }
 
 export function bookSnapshot(): DepthBook {
-  const arr = (m: Map<number, { price: number; size: number }>) =>
-    [...m.entries()].sort((a, b) => a[0] - b[0]).map(([, v]) => v);
-  return { bids: arr(book.bids), asks: arr(book.asks) };
+  const side = (key: "bids" | "asks") => {
+    const rows: DepthLevel[] = [];
+    for (const vb of books.values()) {
+      for (const lvl of vb[key].values()) {
+        if (lvl.price > 0 && lvl.size > 0) rows.push(lvl);
+      }
+    }
+    rows.sort((a, b) => (key === "bids" ? b.price - a.price : a.price - b.price));
+    return rows;
+  };
+  return { bids: side("bids"), asks: side("asks") };
 }
 
 export function histSnapshot(tf: "10s" | "1m" | "1d"): Bar[] {

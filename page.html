@@ -1042,8 +1042,8 @@ function depthGridRow(bid, ask, bidColor, askColor){
   el.appendChild(depthCell(ask ? ask.price.toFixed(2) : '', 'ask-px', askColor));
   el.appendChild(depthCell(ask ? ask.size : '', 'ask-sz', askColor));
   
-  el.insertBefore(depthCell('', 'bid-mm', bidColor), el.firstChild);
-  el.appendChild(depthCell('', 'ask-mm', askColor));
+  el.insertBefore(depthCell(bid ? bid.mm : '', 'bid-mm', bidColor), el.firstChild);
+  el.appendChild(depthCell(ask ? ask.mm : '', 'ask-mm', askColor));
   return el;
 }
 function renderDepth(){

@@ -30,6 +30,7 @@ export interface BracketSnapshot {
 export interface DepthLevel {
   price: number;
   size: number;
+  mm: string;
 }
 
 export interface DepthBook {

@@ -115,6 +115,14 @@ function wire(): void {
 
   on(EventName.openOrderEnd, () => bracket.onReconcileStep("openOrders"));
 
+  on(EventName.contractDetails, (reqId: number, details: any) => {
+    chart.onContractDetails(reqId, details?.contract?.primaryExchange ?? "", details?.validExchanges ?? "");
+  });
+
+  on(EventName.contractDetailsEnd, (reqId: number) => {
+    chart.onContractDetailsEnd(reqId);
+  });
+
   on(EventName.position, (account: string, contract: Contract, pos: number, avgCost: number) => {
     bracket.onPosition(contract.symbol ?? "", pos);
   });

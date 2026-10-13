@@ -96,8 +96,8 @@ work must transfer cleanly between them (copied from
   survives, which turns later scenarios red in confusing ways. See
   resource/lessons/20261013-market-orders-are-limit-only-outside-regular-hours.md.
 - Each test area lives in its own folder under `test/`:
-  `initialization/`, `bracket/`, `depth/`, `health-check/`. Shared
-  helpers live at the test root:
+  `initialization/`, `bracket/`, `depth/`, `ticks/`, `health-check/`.
+  Shared helpers live at the test root:
   `suite.ts` (pass/fail, waits, SSE state, typed API helpers, evidence
   paths), `web.ts` (browser setup and screenshots), and `sse.ts`
   (EventSource replacement). All test code is TypeScript; scenarios

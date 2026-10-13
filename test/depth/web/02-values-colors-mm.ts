@@ -31,6 +31,16 @@ try {
   const rowCount = rendered.length;
   if (mmCells === rowCount * 2) pass('MM cells exist for every row');
   else fail('MM cells exist for every row', `mm=${mmCells} rows=${rowCount}`);
+
+  const mmRendered = await page.$$eval('#ch-depth .tc-depth-row', (rows) =>
+    rows.map((r) => {
+      const c = [...r.querySelectorAll<HTMLElement>('.tc-depth-cell')];
+      return { bid: c[0] ? c[0].textContent!.trim() : '', ask: c[5] ? c[5].textContent!.trim() : '' };
+    }));
+  const payloadVenues = new Set([...st.depth!.bids.map((r) => r.mm), ...st.depth!.asks.map((r) => r.mm)]);
+  const shown = mmRendered.flatMap((r) => [r.bid, r.ask]).filter((t) => t !== '');
+  if (shown.length > 0 && shown.every((m) => payloadVenues.has(m))) pass('MM cells render the venue from the payload');
+  else fail('MM cells render the venue from the payload', JSON.stringify(shown.slice(0, 6)));
 } catch (e) {
   await snap(page, import.meta.url, 'aborted');
   fail('suite aborted', String(e));
