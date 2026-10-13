@@ -16,6 +16,12 @@ echo "types ok"
 bash test/initialization/run-initialization-test.sh "$PORT"
 i=$?
 
+if [ $i -ne 0 ]; then
+  echo "initialization failed: bracket and depth suites not started, apps not launched"
+  echo "read the FAIL lines above; the init runner saved its app log under test/evidence/init-app-<timestamp>.log"
+  exit 1
+fi
+
 bash test/bracket/run-bracket-test.sh "$PORT"
 b=$?
 
