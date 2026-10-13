@@ -13,6 +13,9 @@ if ! ./node_modules/.bin/tsc --noEmit; then
 fi
 echo "types ok"
 
+bash test/initialization/run-initialization-test.sh "$PORT"
+i=$?
+
 bash test/bracket/run-bracket-test.sh "$PORT"
 b=$?
 
@@ -20,6 +23,7 @@ bash test/depth/run-depth-test.sh "$PORT"
 d=$?
 
 echo "== overall =="
+[ $i -eq 0 ] && echo "initialization: pass" || echo "initialization: FAIL"
 [ $b -eq 0 ] && echo "bracket: pass" || echo "bracket: FAIL"
 [ $d -eq 0 ] && echo "depth: pass" || echo "depth: FAIL"
-[ $b -eq 0 ] && [ $d -eq 0 ]
+[ $i -eq 0 ] && [ $b -eq 0 ] && [ $d -eq 0 ]

@@ -46,8 +46,9 @@ test/
 
 API layer, one file per scenario in `test/bracket/api/`, in order:
 
-1. Reconcile gate: `POST /api/arm` immediately after connect is
-   refused until `/status` reports `reconciled: true`
+1. Reconcile gate: now lives in the initialization area,
+   `test/initialization/api/01-reconcile-ib-acct.ts` (see
+   initialization-validation.md)
 2. Arm single-flight: arm SPY, arm again, second call refused, one
    bracket in the snapshot. The double-order guard
 3. Move while working: `POST /api/levels` with new stop and target.
