@@ -6,16 +6,17 @@ Date: 2026-10-12. Status: working notes, read before adding tests.
 
 Every behavior is tested at the lowest layer that can see it.
 
-- **API layer** (`*.mjs` next to the runner, e.g. `bracket-api.mjs`).
+- **API layer** (`test/<area>/api/*.mjs`).
   Plain HTTP calls against our own server (`POST /api/bracket/activate`
   and friends), plus SSE streams watched for live state (conn and
   bracket on `/events`, data on `/market`), plus `audit.log` greps to
   prove the gateway really acked. No browser. All order-state and
   gateway behavior lives here.
-- **Browser layer** (`*.spec.mjs`, e.g. `bracket.spec.mjs`). Playwright
+- **Web layer** (`test/<area>/web/*.mjs`). Playwright
   drives a real browser. Only for things a human can see: modals, button
   clicks, drag feedback, DOM rendering. If curl can prove it, it does
-  not belong here.
+  not belong here. Screenshots on failure land in
+  `test/evidence/`, named `<area>-<phase>-<nn>-<story>.png`.
 
 The chain under test is always: test script -> server.ts -> IB
 Gateway/TWS. The tests never talk to IB directly.
@@ -51,14 +52,17 @@ Rules that keep the suite trustworthy:
 
 ## The moving parts
 
-- `run-*-test.sh` is the director. It kills stray app processes, starts
-  `npx tsx server.ts --ibport <port>`, greps the log for the
-  `connected to` handshake line, runs each suite layer, kills the app,
-  prints a summary, exits nonzero on any failure. The bracket runner
-  restarts the app mid-run on purpose: one scenario covers "app died and
-  came back, did reconcile rebuild state".
-- `sse.mjs` is a 25-line EventSource replacement. Node has no global
-  EventSource on this machine. Reuse it from every new suite.
+- `run-<area>-test.sh` is the director. It kills stray app processes, starts
+  `npx tsx server.ts --ibport <port>`, waits for the app to listen, then
+  runs `test/health-check/health-check.mjs` as the doctor step: three
+  fast probes (IB port open, app answers HTTP, app connected and
+  reconciled). If the doctor fails, no suite starts. Then it runs each
+  suite layer, kills the app, prints a summary, exits nonzero on any
+  failure. The bracket runner restarts the app mid-run on purpose: one
+  scenario covers "app died and came back, did reconcile rebuild state".
+- `sse.mjs` is a 25-line EventSource replacement at `test/sse.mjs`. Node
+  has no global EventSource on this machine. Reuse it from every new
+  suite.
 - The plan doc under `test/validation/` (recipe) is written before or
   alongside the code (dish). One line per scenario, name, what it
   expects, known gaps. Date it.
@@ -66,38 +70,40 @@ Rules that keep the suite trustworthy:
 ## Adding a check to an existing area
 
 1. Write the scenario line in the area's validation doc.
-2. Add the pass/fail block to the area's `.mjs` file. API behaviors go
-   in the api file, DOM behaviors in the spec file.
+2. Create `test/<area>/api/NN-name.mjs` or `test/<area>/web/NN-name.mjs`
+   (NN keeps the runner's execution order). Copy a sibling scenario as
+   the template; shared helpers come from `test/suite.mjs` and
+   `test/web.mjs`.
 3. Run just that file while iterating (app must be live):
 
-   `node test/e2e/bracket/bracket-api.mjs`
+   `node test/bracket/api/02-single-flight.mjs`
 
 4. Run the area runner, then the full suite, before committing:
 
-   `bash test/e2e/bracket/run-bracket-test.sh 7497`
+   `bash test/bracket/run-bracket-test.sh 7497`
 
-## Adding a brand new area (example: market depth)
+## Adding a brand new area
 
-1. Create `test/e2e/<area>/` with three files:
-   `run-<area>-test.sh`, `<area>-api.mjs`, `<area>.spec.mjs`. Copy the
-   bracket files as templates.
-2. `<area>-api.mjs`: copy the boilerplate (imports incl. `./sse.mjs`,
-   pass/fail, waitFor, api helper). Extend the SSE `onmessage` to
-   capture the message types your area cares about. Each scenario: poke
-   the app, wait for state, assert, pass/fail.
-3. `<area>.spec.mjs`: copy the playwright boilerplate. Load `/`, wait
-   for the DOM you need, compare rendered output against the SSE state.
-4. Runner: same skeleton as the bracket runner. Keep the restart phase
-   only if a scenario needs it.
-5. Add `test/e2e/run-all.sh` (or extend it) calling each area runner,
-   sharing the port argument, exiting nonzero on any failure.
+1. Create `test/<area>/` with `run-<area>-test.sh` plus `api/` and
+   `web/` folders (add `reconnect/` only if a scenario needs an app
+   restart). Copy the depth or bracket files as templates.
+2. `api/NN-name.mjs`: copy a sibling scenario. Poke the app over HTTP,
+   watch the SSE streams through `live()` from `test/suite.mjs`,
+   assert, pass/fail.
+3. `web/NN-name.mjs`: copy a sibling scenario. `guiPage(symbol)` from
+   `test/web.mjs` sets up the browser; compare rendered output against
+   the SSE state.
+4. Runner: same skeleton as the depth runner, with the doctor step,
+   per-phase loops, and evidence save on failure.
+5. Add the runner to `test/run-all.sh`, sharing the port argument,
+   exiting nonzero on any failure.
 6. Add `test/validation/<area>-validation.md` with the scenario mapping.
 
 ## Environment facts that will bite you
 
 - Both paper ports are safe for destructive scenarios. 4001 is IB
   Gateway paper, 7497 is TWS paper. Run the full suite as
-  `bash test/e2e/bracket/run-bracket-test.sh 4001` or `... 7497`.
+  `bash test/bracket/run-bracket-test.sh 4001` or `... 7497`.
 - TWS reports API cancels as status `ApiCancelled`, not `Cancelled`.
 - `tickByTickAllLast` fires `(reqId, tickType, time as string, price,
   size)`. Skip tickType, Number() the time.

@@ -1,14 +1,14 @@
 # Market depth validation
 
-Date: 2026-10-12. Status: implemented, covered by `test/e2e/depth/`.
+Date: 2026-10-12. Status: implemented, covered by `test/depth/`.
 
-Data layer: `depth-api.mjs`. Rendering layer: `depth.spec.mjs`. Runner:
-`run-depth-test.sh [port]`. Both layers run inside `test/e2e/run-all.sh`.
+Data layer: `test/depth/api/`. Rendering layer: `test/depth/web/`. Runner:
+`run-depth-test.sh [port]`. Both layers run inside `test/run-all.sh`.
 
 ## Scenario to code mapping
 
 - **Book arrives after symbol load**: load SPY, wait for bids and asks
-  on the SSE `depth` message. Test: `depth-api.mjs` scenario 1
+  on the SSE `depth` message. Test: `test/depth/api/01-book-arrives.mjs`
 - **Book shape**: best bid below best ask, bids best-first descending,
   asks best-first ascending, sizes positive. Scenario 2-3
 - **Refresh on symbol switch**: SPY best bid captured, switch to QQQ,
@@ -20,21 +20,21 @@ Data layer: `depth-api.mjs`. Rendering layer: `depth.spec.mjs`. Runner:
   on a liquid symbol. Scenario 5. Known limit: a dead-quiet market can
   starve this
 - **Header layout**: MM SIZE BID ASK SIZE MM rendered in order.
-  Test: `depth.spec.mjs`
+  Test: `test/depth/web/`
 - **Row structure**: one row per level, six cells each, bid left ask
-  right. Test: `depth.spec.mjs`
+  right. Test: `test/depth/web/`
 - **Values match payload**: every rendered bid price appears in the SSE
-  book snapshot. Test: `depth.spec.mjs`
+  book snapshot. Test: `test/depth/web/`
 - **Tier colors**: price cells carry an explicit color. Test:
   `depth.spec.mjs`
 - **MM cells exist**: two MM cells per row. They are structurally
   present and empty because this feed aggregates per price level. A
   future L2 feed with market maker ids must fill them without changing
-  this check. Test: `depth.spec.mjs`
+  this check. Test: `test/depth/web/`
 - **Grid refresh on switch**: DOM rows change after switching symbol.
-  Test: `depth.spec.mjs`
+  Test: `test/depth/web/`
 
-## Not covered e2e, by design
+## Not covered here, by design
 
 - **Max 3 simultaneous depth requests**: the app holds exactly one
   depth request and cancels it on symbol switch, verified by code

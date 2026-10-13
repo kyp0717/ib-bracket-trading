@@ -6,10 +6,10 @@ cd "$ROOT"
 
 PORT="${1:-4001}"
 
-bash test/e2e/bracket/run-bracket-test.sh "$PORT"
+bash test/bracket/run-bracket-test.sh "$PORT"
 b=$?
 
-bash test/e2e/depth/run-depth-test.sh "$PORT"
+bash test/depth/run-depth-test.sh "$PORT"
 d=$?
 
 echo "== overall =="

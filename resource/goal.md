@@ -77,7 +77,7 @@ nothing. Go crazy.
 - 4001: IB Gateway paper. The app default, `npx tsx server.ts`
 - 7497: TWS paper. Run `npx tsx server.ts --ibport 7497`
 - Full suite on either port:
-  `bash test/e2e/bracket/run-bracket-test.sh 4001` or `... 7497`
+  `bash test/bracket/run-bracket-test.sh 4001` or `... 7497`
 
 ## Bracket Safety 
 

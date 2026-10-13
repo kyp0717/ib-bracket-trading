@@ -12,14 +12,12 @@ Playwright GUI spec, both run by one script.
 
 ```
 test/
-├── validation/
-│   ├── bracket-validation.md          # scenario to code mapping (moved here)
-│   └── 20261012-bracket-validation-plan.md   # this file
-└── e2e/
-    └── bracket/
-        ├── run-bracket-test.sh        # restart app, wait handshake, run both layers
-        ├── bracket-api.mjs            # mechanical scenarios over HTTP
-        └── bracket.spec.mjs           # Playwright: confirm modal, drag lock
+├── validation/                # scenario-to-code mapping docs
+└── bracket/
+    ├── run-bracket-test.sh    # restart app, doctor step, run each phase
+    ├── api/                   # HTTP + SSE scenarios, one file each
+    ├── web/                   # Playwright scenarios, one file each
+    └── reconnect/             # runs after the runner restarts the app
 ```
 
 ## Design decisions
@@ -91,12 +89,12 @@ Browser layer, `bracket.spec.mjs`:
    closes the symbol position). Flatten is not test scaffolding:
    deactivate-while-filled cancels the children and leaves the entry
    position naked, and the GUI had no way to close it
-2. `test/e2e/bracket/run-bracket-test.sh`
-3. `test/e2e/bracket/bracket-api.mjs`. Runs scenarios 1-7 and 9 in
+2. `test/bracket/run-bracket-test.sh`
+3. `test/bracket/bracket-api.mjs`. Runs scenarios 1-7 and 9 in
    part one, then leaves a resting SPY bracket on the book. The
    runner restarts the app and the script runs again with the
    `reconnect` argument for scenario 8
-4. `test/e2e/bracket/bracket.spec.mjs`
+4. `test/bracket/bracket.spec.mjs`
 5. Full run against paper (4001 or 7497), fix what the suite finds, then record
    results back into `test/validation/bracket-validation.md`
 

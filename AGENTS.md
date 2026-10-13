@@ -73,14 +73,41 @@ work must transfer cleanly between them (copied from
 
 (none recorded yet — add them here as they come up)
 
-## Testing
+## Testing and validation
 
-- Paper endpoints only, both safe for destructive scenarios: 4001 is IB
+- Paper endpoints only, both safe for destructive scenarios. 4001 is IB
   Gateway paper, 7497 is TWS paper. Full suite:
-  `bash test/e2e/run-all.sh 7497`
-- Every test area has a plan doc under `test/validation/` and suites
-  under `test/e2e/<area>/`. Read `resource/how-validation-works.md`
-  before adding tests.
+  `bash test/run-all.sh 7497`
+- Each test area lives in its own folder under `test/`: `bracket/`,
+  `depth/`, `health-check/`. Shared helpers live at the test root:
+  `suite.mjs` (pass/fail, waits, SSE state, evidence paths) and
+  `web.mjs` (browser setup and screenshots).
+- Scenarios are one file each inside phase folders: `api/` (HTTP + SSE
+  data checks), `web/` (Playwright browser checks), `reconnect/`
+  (bracket only, runs after the runner restarts the app). File names
+  start with a number to fix execution order within a phase. The runner
+  loops every scenario file and keeps going after a failure, so one red
+  scenario never hides the rest. A scenario exits nonzero on any failed
+  check.
+- Every runner starts with the doctor step:
+  `node test/health-check/health-check.mjs <port>` proves the IB port
+  is open, the app answers HTTP, and the app is connected and
+  reconciled before any scenario runs. If the doctor fails, nothing
+  starts.
+- Evidence lives in one folder, `test/evidence/` (gitignored). Every
+  artifact is named after the test that produced it, so a filename is
+  all you need to trace back. Screenshots:
+  `test/<area>/<phase>/<nn>-<story>.mjs` produces
+  `<area>-<phase>-<nn>-<story>-<what>.png`, generated automatically
+  from the scenario file path. Example:
+  `test/bracket/web/03-locked-entry.mjs` on abort writes
+  `test/evidence/bracket-web-03-locked-entry-aborted.png`. App logs:
+  `<area>-app-<timestamp>.log` from the runner. To diagnose a red
+  scenario, read its evidence file first.
+- To add a scenario: write the scenario line in the area's validation
+  doc under `test/validation/`, copy a sibling scenario into the right
+  phase folder with the next number, and follow the pass/fail pattern
+  in `resource/how-validation-works.md`.
 - Never leave a position or a resting bracket on the paper account when
   a session ends. Flatten and deactivate before stopping.
 
