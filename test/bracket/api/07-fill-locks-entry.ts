@@ -1,6 +1,6 @@
 import { makeSuite, live, waitFor, quote, r2, activate, setLevels } from '../../suite';
 
-const { pass, fail, summary } = makeSuite('api 05 fill locks entry');
+const { pass, fail, summary } = makeSuite('api 07 fill locks entry');
 const { st, close } = live();
 
 try {
@@ -12,21 +12,12 @@ try {
   if (!r.ok) throw new Error('fill activation failed: ' + JSON.stringify(r));
   await waitFor('entry fill', 60000, () => st.bracket && st.bracket!.entryLocked);
   pass('entry filled, entryLocked set');
-  const ids = { stop: st.bracket!.stopLeg.orderId, target: st.bracket!.targetLeg.orderId };
   const r2r = await setLevels({ entry: r2(entry + 1), stop: fillLv.stop, target: fillLv.target });
   if (!r2r.ok && /entry locked/.test(r2r.error || '')) {
     pass('entry change after fill refused');
   } else {
     fail('entry change after fill refused', JSON.stringify(r2r));
   }
-  const newStop = r2(entry - 3), newTarget = r2(entry + 3);
-  const r3 = await setLevels({ stop: newStop, target: newTarget });
-  if (r3.ok) pass('stop and target move after fill accepted');
-  else fail('stop and target move after fill accepted', JSON.stringify(r3));
-  await waitFor('in-place modify', 10000, () =>
-    st.bracket && st.bracket!.stop === newStop && st.bracket!.target === newTarget &&
-    st.bracket!.stopLeg.orderId === ids.stop && st.bracket!.targetLeg.orderId === ids.target);
-  pass('children modified in place on the same order IDs');
 } catch (e) {
   fail('suite aborted', String(e));
 } finally {

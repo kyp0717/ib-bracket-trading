@@ -110,11 +110,22 @@ work must transfer cleanly between them (copied from
   scenario must cover it.
 - Scenarios are one file each inside phase folders: `api/` (HTTP + SSE
   data checks), `web/` (Playwright browser checks), `reconnect/`
-  (bracket only, runs after the runner restarts the app). File names
-  start with a number to fix execution order within a phase. The runner
+  (bracket only, runs after the runner restarts the app). One story per
+  file: a scenario proves exactly one behavior and the file name says
+  which. File names start with a number to fix execution order within a
+  phase, because scenarios chain when one leaves live state for the
+  next. The runner
   loops every scenario file and keeps going after a failure, so one red
   scenario never hides the rest. A scenario exits nonzero on any failed
   check.
+- Design decisions no scenario can express, carried here so they
+  survive renames: FILLED stands in for PARTIAL in e2e because partial
+  fills cannot be forced reliably on paper, and the FILLED path
+  exercises the same entry-lock code. Move-during-canceling is refused
+  rather than queued and stays untested because the refusal window is
+  milliseconds. Scenarios chain: a scenario that needs a live bracket
+  waits for the one the previous scenario left, and the chain ends with
+  an explicit deactivate, so the book is always clean between areas.
 - Every runner starts with the doctor step:
   `npx tsx test/health-check/health-check.ts <port>` proves the IB
   port is open, the app answers HTTP, and the app is connected and
@@ -131,10 +142,9 @@ work must transfer cleanly between them (copied from
   `test/evidence/bracket-web-03-locked-entry-aborted.png`. App logs:
   `<area>-app-<timestamp>.log` from the runner. To diagnose a red
   scenario, read its evidence file first.
-- To add a scenario: write the scenario line in the area's validation
-  doc under `test/validation/`, copy a sibling scenario into the right
-  phase folder with the next number, and follow the pass/fail pattern
-  in `resource/how-validation-works.md`.
+- To add a scenario: copy a sibling scenario into the right phase
+  folder with the next number, name the file after what it proves, and
+  follow the pass/fail pattern in `resource/how-validation-works.md`.
 - Never leave a position or a resting bracket on the paper account when
   a session ends. Flatten and deactivate before stopping.
 
@@ -145,7 +155,8 @@ work must transfer cleanly between them (copied from
   `resource/` carry the why. A real constraint gets encoded in a type,
   a test, or a check, never a comment. When a change touches code that
   carries comments, strip them in that change and relocate anything
-  load-bearing first (goal.md, the validation docs). No backward
+  load-bearing first (goal.md, AGENTS.md, or a lesson in
+  resource/lessons/). No backward
   sweep: untouched code keeps its comments, and they are removed
   progressively as edits touch each file.
 

@@ -1,6 +1,6 @@
 import { makeSuite, live, waitFor, quote, r2, activate } from '../../suite';
 
-const { pass, fail, summary } = makeSuite('api 02 single-flight');
+const { pass, fail, summary } = makeSuite('api 02 enforce single order');
 const { st, close } = live();
 
 try {

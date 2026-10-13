@@ -1,6 +1,6 @@
 import { makeSuite, live, waitFor, waitIdle, activate, deactivate } from '../../suite';
 
-const { pass, fail, summary } = makeSuite('api 09 reject closes');
+const { pass, fail, summary } = makeSuite('api 12 reject closes');
 const { st, close } = live();
 
 try {

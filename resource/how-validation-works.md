@@ -66,22 +66,18 @@ Rules that keep the suite trustworthy:
 - `sse.ts` is a 25-line EventSource replacement at `test/sse.ts`. Node
   has no global EventSource on this machine. Reuse it from every new
   suite.
-- The plan doc under `test/validation/` (recipe) is written before or
-  alongside the code (dish). One line per scenario, name, what it
-  expects, known gaps. Date it.
 
 ## Adding a check to an existing area
 
-1. Write the scenario line in the area's validation doc.
-2. Create `test/<area>/api/NN-name.ts` or `test/<area>/web/NN-name.ts`
-   (NN keeps the runner's execution order). Copy a sibling scenario as
-   the template; shared helpers come from `test/suite.ts` and
-   `test/web.ts`.
-3. Run just that file while iterating (app must be live):
+1. Create `test/<area>/api/NN-name.ts` or `test/<area>/web/NN-name.ts`
+   (NN keeps the runner's execution order). Name the file after what it
+   proves. Copy a sibling scenario as the template; shared helpers come
+   from `test/suite.ts` and `test/web.ts`.
+2. Run just that file while iterating (app must be live):
 
-   `npx tsx test/bracket/api/02-single-flight.ts`
+   `npx tsx test/bracket/api/02-enforce-single-order.ts`
 
-4. Run the area runner, then the full suite, before committing:
+3. Run the area runner, then the full suite, before committing:
 
    `bash test/bracket/run-bracket-test.sh 7497`
 
@@ -100,7 +96,6 @@ Rules that keep the suite trustworthy:
    per-phase loops, and evidence save on failure.
 5. Add the runner to `test/run-all.sh`, sharing the port argument,
    exiting nonzero on any failure.
-6. Add `test/validation/<area>-validation.md` with the scenario mapping.
 
 ## Environment facts that will bite you
 
