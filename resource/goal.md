@@ -42,7 +42,11 @@ TypeScript on Node.js. One language for server and GUI.
 - Order status panel with one row per leg: parent, stop, target.
   Each row shows state, filled quantity, average fill price. The
   entry row shows a lock once any parent fill arrived
-- All live updates push over one SSE stream
+- Two SSE pipes: `/events` carries execution traffic (conn, bracket,
+  audit), `/market` carries data traffic (hist, bar, tape, depth).
+  The fan-out to browsers is deferred with setImmediate so an IB
+  order callback returns before serialization. Order-path tasks stay
+  short and synchronous-free
 
 ## IB facts that shape the build
 

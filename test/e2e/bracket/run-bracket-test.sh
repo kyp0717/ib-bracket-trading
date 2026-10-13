@@ -1,11 +1,4 @@
 #!/usr/bin/env bash
-# Bracket validation suite. Restarts the app against a paper IB API
-# endpoint, runs the API scenario layer, restarts again for the
-# reconnect scenario, then runs the Playwright layer.
-#
-# Usage: run-bracket-test.sh [ib-port]
-#   ib-port defaults to 4001 (IB Gateway paper). Use 7497 for TWS
-#   paper. Both endpoints are paper accounts, fills cost nothing.
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"

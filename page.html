@@ -633,7 +633,6 @@ function chartOptions(secondsVisible){
   };
 }
 
-// ---- charts ----
 const priceChart = LightweightCharts.createChart($('ch-second'), chartOptions(true));
 const candle = priceChart.addSeries(LightweightCharts.CandlestickSeries, {
   upColor: '#34b37e',
@@ -666,7 +665,6 @@ const macdHist = macdChart.addSeries(LightweightCharts.HistogramSeries, {
   priceLineVisible: false, lastValueVisible: false,
 }, 0);
 
-// ---- level overlays ----
 for (const def of LEVELS) {
   const line = document.createElement('div');
   line.className = 'tc-level';
@@ -784,7 +782,6 @@ async function pushLevels(){
   return false;
 }
 
-// ---- level rendering ----
 function clampRow(row, y, h){
   if (y === null || y === undefined) {
     row.style.display = 'none';
@@ -890,7 +887,6 @@ function fitPriceScale(){
   return true;
 }
 
-// ---- MACD (12, 26, 9) from the visible bars ----
 function emaSeries(values, period){
   const k = 2 / (period + 1);
   const out = new Array(values.length);
@@ -924,7 +920,6 @@ function renderMacd(){
   signalLine.setData(data.map((b, i) => ({ time: b.time, value: s[i] })));
 }
 
-// ---- data rendering ----
 const toCandle = (b) => ({ time: b.time, open: b.open, high: b.high, low: b.low, close: b.close });
 const toVolume = (b) => ({ time: b.time, value: b.volume, color: b.close >= b.open ? 'rgba(52,179,126,0.45)' : 'rgba(239,91,107,0.45)' });
 
@@ -966,7 +961,6 @@ function onBar(m){
   markArrived();
 }
 
-// ---- tape ----
 const TAPE_MAX_ROWS = 60;
 function ensureTapeRows(n){
   const col = $('ch-tape');
@@ -1012,7 +1006,6 @@ function prependTrades(trades){
   renderTape();
 }
 
-// ---- depth ----
 const TIER_COLORS = [
   'rgb(51,255,102)',
   'rgb(217,102,255)',
@@ -1046,7 +1039,7 @@ function depthGridRow(bid, ask, bidColor, askColor){
   el.appendChild(depthCell(bid ? bid.price.toFixed(2) : '', 'bid-px', bidColor));
   el.appendChild(depthCell(ask ? ask.price.toFixed(2) : '', 'ask-px', askColor));
   el.appendChild(depthCell(ask ? ask.size : '', 'ask-sz', askColor));
-  // MM columns stay empty: this feed aggregates per price level.
+  
   el.insertBefore(depthCell('', 'bid-mm', bidColor), el.firstChild);
   el.appendChild(depthCell('', 'ask-mm', askColor));
   return el;
@@ -1068,7 +1061,6 @@ function renderDepth(){
   }
 }
 
-// ---- symbol switch ----
 let switchSlowTimer = null;
 let switchHideTimer = null;
 function showSwitching(sym){
@@ -1138,7 +1130,6 @@ $('ch-form').addEventListener('submit', (ev) => {
   $('ch-feedback').textContent = 'switch ' + t + ' sent';
 });
 
-// ---- defaults ----
 const DEFAULT_PCT = 0.01;
 function legDistance(entry){
   if (entry < 50) return 0.05;
@@ -1158,7 +1149,6 @@ function defaultLevels(price){
   return defaults[symbol];
 }
 
-// ---- bracket state from the server ----
 function readServerLevels(){
   if (bracketActive) {
     levels = {
@@ -1203,7 +1193,6 @@ function syncBracket(m){
   renderPosition();
 }
 
-// ---- activate / deactivate toggle ----
 $('ch-arm').addEventListener('click', () => {
   if (bracketActive) {
     post('/api/bracket/deactivate', { reason: 'gui deactivate' }).then((r) => {
@@ -1238,7 +1227,6 @@ $('confirmYes').addEventListener('click', async () => {
   }
 });
 
-// ---- size, type, tf, reset ----
 $('ch-size').addEventListener('click', (ev) => {
   const btn = ev.target.closest('.tc-size-btn');
   if (!btn) return;
@@ -1276,9 +1264,12 @@ $('ch-reset').addEventListener('click', () => {
   $('ch-feedback').textContent = 'bracket reset';
 });
 
-// ---- SSE ----
 const es = new EventSource('/events');
-es.onmessage = (e) => {
+const mkt = new EventSource('/market');
+es.onmessage = onSse;
+mkt.onmessage = onSse;
+
+function onSse(e) {
   const m = JSON.parse(e.data);
   switch (m.t) {
     case 'conn': {
@@ -1319,9 +1310,8 @@ es.onmessage = (e) => {
       console.log(m.msg);
       break;
   }
-};
+}
 
-// keep the side columns aligned with the price pane height
 function syncSide(){
   try {
     const panes = priceChart.panes();
@@ -1337,8 +1327,6 @@ setInterval(syncSide, 1000);
 window.addEventListener('resize', syncSide);
 priceChart.timeScale().subscribeVisibleLogicalRangeChange(() => renderLevels());
 
-// keep display levels, leg states, and the side columns fresh even
-// when no bracket event fires (first tape after a symbol switch)
 setInterval(() => {
   if (!dragging && Date.now() >= suppressUntil) {
     readServerLevels();

@@ -1,5 +1,3 @@
-// Minimal SSE client for Node, which has no global EventSource here.
-// Supports exactly what the suites need: one onmessage callback and close().
 
 export class EventSource {
   constructor(url) {

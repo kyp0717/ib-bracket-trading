@@ -1,6 +1,3 @@
-// HTTP server, SSE stream, static page, action routes.
-// The page and the order logic share one process and one state;
-// routes call bracket.ts directly.
 
 import http from "http";
 import { readFile } from "fs";
@@ -9,18 +6,21 @@ import * as bracket from "./bracket";
 import * as chart from "./chart";
 import { onEvent } from "./emit";
 
-const sseClients = new Set<http.ServerResponse>();
+const execClients = new Set<http.ServerResponse>();
+const marketClients = new Set<http.ServerResponse>();
 
-onEvent((msg) => {
+function fanOut(clients: Set<http.ServerResponse>, msg: unknown): void {
   const data = `data: ${JSON.stringify(msg)}\n\n`;
-  for (const res of sseClients) {
+  for (const res of clients) {
     try {
       res.write(data);
     } catch {
-      /* dropped client, pruned on close event */
     }
   }
-});
+}
+
+onEvent("exec", (msg) => setImmediate(() => fanOut(execClients, msg)));
+onEvent("market", (msg) => setImmediate(() => fanOut(marketClients, msg)));
 
 function sendJson(res: http.ServerResponse, status: number, obj: unknown): void {
   res.writeHead(status, { "content-type": "application/json" });
@@ -68,10 +68,22 @@ const server = http.createServer(async (req, res) => {
         connection: "keep-alive",
       });
       res.write("retry: 3000\n\n");
-      sseClients.add(res);
-      req.on("close", () => sseClients.delete(res));
+      execClients.add(res);
+      req.on("close", () => execClients.delete(res));
       emitSnapshot(res, { t: "conn", ...ibmod.state });
       emitSnapshot(res, { t: "bracket", bracket: bracket.snapshot() });
+      return;
+    }
+
+    if (req.method === "GET" && path === "/market") {
+      res.writeHead(200, {
+        "content-type": "text/event-stream",
+        "cache-control": "no-cache",
+        connection: "keep-alive",
+      });
+      res.write("retry: 3000\n\n");
+      marketClients.add(res);
+      req.on("close", () => marketClients.delete(res));
       emitSnapshot(res, { t: "hist", tf: "10s", bars: chart.histSnapshot("10s") });
       emitSnapshot(res, { t: "hist", tf: "1m", bars: chart.histSnapshot("1m") });
       emitSnapshot(res, { t: "hist", tf: "1d", bars: chart.histSnapshot("1d") });
@@ -109,8 +121,7 @@ const server = http.createServer(async (req, res) => {
         sendJson(res, 400, { ok: false, error: "symbol required" });
         return;
       }
-      // A live bracket belongs to its symbol. Switching away from it
-      // deactivates it first, so no bracket is left silently resting.
+
       if (bracket.hasWorking() && chart.getSymbol() !== symbol) {
         bracket.deactivate(`symbol switch to ${symbol}`);
       }

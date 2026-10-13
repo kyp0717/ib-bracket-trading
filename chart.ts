@@ -1,7 +1,3 @@
-// Bar aggregation, history backfill, tape, market depth.
-// Buckets 5-second realtime bars into 10s and 1m. Daily comes
-// from a plain historical request. One symbol of data at a time;
-// switching cancels what it opened, including the depth request.
 
 import { BarSizeSetting, TickByTickDataType, WhatToShow } from "@stoqey/ib";
 import * as ibmod from "./ib";
@@ -31,7 +27,6 @@ export function quote(): Trade | null {
 let symbol = "";
 let reqIds: Record<string, number> = {};
 
-// reqId keys: rt, hist10s, hist1m, hist1d, tape, depth
 const buckets: Record<"10s" | "1m", Map<number, Bar>> = {
   "10s": new Map(),
   "1m": new Map(),
@@ -75,13 +70,12 @@ export function setSymbol(sym: string): void {
     ibmod.ib.reqHistoricalData(reqIds.hist1m, contract, "", "2 D", BarSizeSetting.MINUTES_ONE, WhatToShow.TRADES, 0, 2, true);
     ibmod.ib.reqHistoricalData(reqIds.hist1d, contract, "", "6 M", BarSizeSetting.DAYS_ONE, WhatToShow.TRADES, 1, 2, false);
     ibmod.ib.reqTickByTickData(reqIds.tape, contract, TickByTickDataType.AllLast, 0, false);
-    // Max 3 simultaneous depth requests are allowed by IB. We hold one
-    // and always cancel it on symbol switch.
+
     ibmod.ib.reqMktDepth(reqIds.depth, contract, 10, true);
   } catch (e) {
     console.error("subscribe failed", e);
   }
-  emit({ t: "info", msg: `subscribed ${symbol}` });
+  emit("market", { t: "info", msg: `subscribed ${symbol}` });
 }
 
 function cancelAll(): void {
@@ -119,7 +113,7 @@ export function onRealtimeBar(reqId: number, time: number, open: number, high: n
   if (reqId !== reqIds.rt) return;
   const bar: Bar = { time, open, high, low, close, volume };
   for (const tf of ["10s", "1m"] as const) {
-    emit({ t: "bar", tf, bar: bucket(tf, time, bar) });
+    emit("market", { t: "bar", tf, bar: bucket(tf, time, bar) });
   }
 }
 
@@ -132,12 +126,12 @@ export function onHistoricalData(reqId: number, time: number, open: number, high
 
 export function onHistoricalDataEnd(reqId: number): void {
   if (reqId === reqIds.hist10s) {
-    emit({ t: "hist", tf: "10s", bars: sortedBars(buckets["10s"]) });
+    emit("market", { t: "hist", tf: "10s", bars: sortedBars(buckets["10s"]) });
   } else if (reqId === reqIds.hist1m) {
-    emit({ t: "hist", tf: "1m", bars: sortedBars(buckets["1m"]) });
+    emit("market", { t: "hist", tf: "1m", bars: sortedBars(buckets["1m"]) });
   } else if (reqId === reqIds.hist1d) {
     daily.sort((a, b) => a.time - b.time);
-    emit({ t: "hist", tf: "1d", bars: daily });
+    emit("market", { t: "hist", tf: "1d", bars: daily });
   }
 }
 
@@ -146,7 +140,7 @@ export function onHistoricalDataUpdate(reqId: number, bar: any): void {
   const nb = bucket("1m", Number(bar.time), {
     time: Number(bar.time), open: bar.open, high: bar.high, low: bar.low, close: bar.close, volume: bar.volume || 0,
   });
-  emit({ t: "bar", tf: "1m", bar: nb });
+  emit("market", { t: "bar", tf: "1m", bar: nb });
 }
 
 export function onTick(reqId: number, time: number, price: number, size: number): void {
@@ -155,7 +149,7 @@ export function onTick(reqId: number, time: number, price: number, size: number)
   lastQuote = trade;
   tape.push(trade);
   if (tape.length > TAPE_MAX) tape.shift();
-  emit({ t: "tape", trade });
+  emit("market", { t: "tape", trade });
 }
 
 export function onDepth(reqId: number, pos: number, op: number, side: number, price: number, size: number): void {
@@ -163,7 +157,7 @@ export function onDepth(reqId: number, pos: number, op: number, side: number, pr
   const m = side === 1 ? book.bids : book.asks;
   if (op === 2) m.delete(pos);
   else m.set(pos, { price, size });
-  emit({ t: "depth", book: bookSnapshot() });
+  emit("market", { t: "depth", book: bookSnapshot() });
 }
 
 export function bookSnapshot(): { bids: { price: number; size: number }[]; asks: { price: number; size: number }[] } {

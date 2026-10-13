@@ -1,8 +1,3 @@
-// GUI layer of the bracket validation suite. Assumes the app is
-// running against a paper IB API endpoint (4001 IB Gateway or 7497
-// TWS) with a flat book. Covers what only the browser can prove: the
-// confirm modal, the locked-entry drag feedback, and the LOCKED entry
-// row.
 
 import { chromium } from '/home/phage/.nvm/versions/node/v24.18.0/lib/node_modules/playwright/index.mjs';
 import { EventSource } from './sse.mjs';
@@ -44,8 +39,7 @@ es.onmessage = (e) => {
 };
 const br = () => st.bracket;
 async function waitIdle(ms = 15000) {
-  // observe the pending state first, then its clearing. Guards
-  // against reading a stale pre-cancel snapshot and returning early.
+
   await waitFor('cancels registered', 5000, () => st.cancelInFlight).catch(() => {});
   await waitFor('cancels settled', ms, () => !st.cancelInFlight);
 }
@@ -69,14 +63,12 @@ try {
     const q = await api('/api/quote');
     return q && q.symbol === SYMBOL && q.price > 0;
   });
-  // page-side readiness: the entry handle must be placed before the
-  // arm click, otherwise the toggle sees no levels and no modal opens
+
   await page.waitForFunction(() => {
     const row = document.querySelector('#ch-col .tc-hnd');
     return row && row.style.display === 'flex';
   }, null, { timeout: 20000 });
 
-  // Confirm modal: cancel places nothing, confirm places one.
   await page.click('#ch-arm');
   await page.waitForSelector('#modal', { state: 'visible' });
   await page.click('#confirmNo');
@@ -98,7 +90,6 @@ try {
   pass('deactivate button cancels the bracket');
   await waitIdle();
 
-  // Fill a bracket, then try to drag the entry line.
   const q = (await api('/api/quote')).price;
   const entry = r2(q + 0.02);
   const r = await api('/api/bracket/activate', {
@@ -119,8 +110,7 @@ try {
     fail('entry row renders LOCKED after fill', colText);
   }
 
-  // Drag the entry handle down. The pointerdown must be rejected and
-  // the level must not move.
+  
   const box = await page.$eval('#ch-col .tc-hnd', (el) => {
     const b = el.getBoundingClientRect();
     return { x: b.x, y: b.y, width: b.width, height: b.height };

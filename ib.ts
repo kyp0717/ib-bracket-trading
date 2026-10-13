@@ -1,5 +1,3 @@
-// IB connection, event wiring, order placement primitives.
-// Callbacks never block: they hand data to bracket/chart and return.
 
 import { IBApi, EventName, Stock, Contract } from "@stoqey/ib";
 import { emit } from "./emit";
@@ -34,7 +32,6 @@ export const ib = new IBApi({
 let idCounter = 0;
 let wired = false;
 
-// The typed overloads for .on fight every handler signature. Loosen once.
 const on = (ev: string, fn: (...args: any[]) => void): void => {
   (ib as any).on(ev, fn);
 };
@@ -66,10 +63,9 @@ export function connect(): void {
 function wire(): void {
   on(EventName.connected, () => {
     state.connected = true;
-    emit({ t: "conn", ...state });
+    emit("exec", { t: "conn", ...state });
     console.log(`connected to ${state.host}:${state.ibPort}`);
-    // The gateway replays this client's open orders right after
-    // connect, before nextValidId. Reconcile must already be open.
+
     bracket.beginReconcile();
   });
 
@@ -77,7 +73,7 @@ function wire(): void {
     state.connected = false;
     state.reconciled = false;
     bracket.blockActivations();
-    emit({ t: "conn", ...state });
+    emit("exec", { t: "conn", ...state });
     console.log("disconnected, retrying in 5s");
     setTimeout(connect, 5000);
   });
@@ -85,13 +81,13 @@ function wire(): void {
   on(EventName.nextValidId, (orderId: number) => {
     state.nextValidId = Math.max(state.nextValidId, orderId);
     idCounter = state.nextValidId;
-    emit({ t: "conn", ...state });
+    emit("exec", { t: "conn", ...state });
   });
 
   on(EventName.error, (err: Error, code: number, reqId: number) => {
     if (INFO_CODES.has(code)) {
       console.log(`info ${code}: ${err.message}`);
-      emit({ t: "info", msg: `${code} ${err.message}` });
+      emit("exec", { t: "info", msg: `${code} ${err.message}` });
       return;
     }
     if (DISCONNECT_CODES.has(code)) {
@@ -100,7 +96,7 @@ function wire(): void {
     }
     console.error(`error ${code} req ${reqId}: ${err.message}`);
     audit("error", `code=${code} req=${reqId} ${err.message}`);
-    emit({ t: "info", msg: `ERR ${code}: ${err.message}` });
+    emit("exec", { t: "info", msg: `ERR ${code}: ${err.message}` });
   });
 
   on(
@@ -139,7 +135,7 @@ function wire(): void {
     EventName.historicalData,
     (reqId: number, time: string, open: number, high: number, low: number,
      close: number, volume: number, count: number, wap: number) => {
-      // The end marker arrives as a "finished..." string on this same event.
+      
       if (typeof time === "string" && time.startsWith("finished")) {
         chart.onHistoricalDataEnd(reqId);
         return;

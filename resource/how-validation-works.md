@@ -8,9 +8,10 @@ Every behavior is tested at the lowest layer that can see it.
 
 - **API layer** (`*.mjs` next to the runner, e.g. `bracket-api.mjs`).
   Plain HTTP calls against our own server (`POST /api/bracket/activate`
-  and friends), plus one SSE stream (`/events`) watched for live state,
-  plus `audit.log` greps to prove the gateway really acked. No browser.
-  All order-state and gateway behavior lives here.
+  and friends), plus SSE streams watched for live state (conn and
+  bracket on `/events`, data on `/market`), plus `audit.log` greps to
+  prove the gateway really acked. No browser. All order-state and
+  gateway behavior lives here.
 - **Browser layer** (`*.spec.mjs`, e.g. `bracket.spec.mjs`). Playwright
   drives a real browser. Only for things a human can see: modals, button
   clicks, drag feedback, DOM rendering. If curl can prove it, it does

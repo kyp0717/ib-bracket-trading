@@ -1,8 +1,3 @@
-// Bracket transition-lock scenarios over HTTP, against a paper IB API
-// endpoint: port 4001 (IB Gateway paper) or 7497 (TWS paper).
-// Part one (no argument): scenarios 1-7 and 9, then leaves a resting
-// SPY bracket on the book for the runner's restart.
-// Part two ("reconnect"): scenario 8, the bracket must come back.
 
 import { readFileSync } from 'fs';
 import { EventSource } from './sse.mjs';
@@ -52,7 +47,6 @@ function acked(orderId) {
     || log.includes(`order=${orderId} ApiCancelled`);
 }
 
-// Live state off the same SSE stream the GUI uses.
 const st = { reconciled: false, cancelInFlight: false, bracket: null };
 const es = new EventSource(APP + '/events');
 es.onmessage = (e) => {
@@ -69,8 +63,7 @@ function br() {
 }
 
 async function waitIdle(ms = 15000) {
-  // observe the pending state first, then its clearing. Guards
-  // against reading a stale pre-cancel snapshot and returning early.
+
   await waitFor('cancels registered', 5000, () => st.cancelInFlight).catch(() => {});
   await waitFor('cancels settled', ms, () => !st.cancelInFlight);
 }
@@ -93,8 +86,7 @@ async function quote(sym) {
 const r2 = (x) => Math.round(x * 100) / 100;
 
 async function main() {
-  // Scenario 1: reconcile gate. Activation before reconcile finishes
-  // must be refused. If the gateway replays too fast to catch, say so.
+
   try {
     const r = await api('/api/bracket/activate', { symbol: SYMBOL, qty: 1, entry: 1, stop: 0.5, target: 2, orderType: 'LMT' });
     if (!r.ok && /reconcil/i.test(r.error || '')) {
@@ -112,7 +104,6 @@ async function main() {
   await waitFor('reconciled', 60000, () => st.reconciled);
   pass('reconcile completes and activations open');
 
-  // Scenario 2: single-flight. Only one bracket ever exists.
   const q0 = await quote(SYMBOL);
   const lv = { entry: r2(q0 - 3), stop: r2(q0 - 4), target: r2(q0 + 1) };
   let r = await api('/api/bracket/activate', { symbol: SYMBOL, qty: 1, ...lv, orderType: 'LMT' });
@@ -128,7 +119,6 @@ async function main() {
   if (br().parent.orderId === first.parent) pass('exactly one bracket on the book');
   else fail('exactly one bracket on the book', 'parent id changed after second activation');
 
-  // Scenario 3: move while working is cancel-replace.
   const lv2 = { stop: r2(lv.stop - 0.5), target: r2(lv.target + 0.5) };
   r = await api('/api/bracket/levels', { stop: lv2.stop, target: lv2.target });
   if (r.ok) pass('level move while working accepted');
@@ -140,7 +130,6 @@ async function main() {
   if (br().stop === lv2.stop && br().target === lv2.target) pass('new levels live on the replacement');
   else fail('new levels live on the replacement', JSON.stringify({ stop: br().stop, target: br().target }));
 
-  // Scenario 4: deactivate while working cancels the real orders.
   r = await api('/api/bracket/deactivate', { reason: 'scenario 4' });
   if (r.ok) pass('deactivate while working accepted');
   else fail('deactivate while working accepted', JSON.stringify(r));
@@ -148,7 +137,6 @@ async function main() {
   pass('all three legs cancel-acked at the gateway');
   await waitIdle();
 
-  // Scenario 5: fill locks entry, children modify in place.
   const q1 = await quote(SYMBOL);
   const entry = r2(q1 + 0.02);
   const fillLv = { entry, stop: r2(entry - 2), target: r2(entry + 2) };
@@ -172,7 +160,6 @@ async function main() {
     br().stopLeg.orderId === idsAfterFill.stop && br().targetLeg.orderId === idsAfterFill.target);
   pass('children modified in place on the same order IDs');
 
-  // Scenario 6: deactivate while filled cancels the children.
   r = await api('/api/bracket/deactivate', { reason: 'scenario 6' });
   if (r.ok) pass('deactivate while filled accepted');
   else fail('deactivate while filled accepted', JSON.stringify(r));
@@ -188,9 +175,8 @@ async function main() {
   else fail('flatten closes the naked entry position', JSON.stringify(r));
   await waitIdle();
 
-  // Scenario 7: one bracket for the whole app, whatever the symbol.
-  // Arm AAPL, then a SPY activation must be refused while it works.
-  // Switching symbol away from a working bracket disarms it.
+  
+  
   const aq = await quote('AAPL');
   const aaplLv = { entry: r2(aq - 3), stop: r2(aq - 4), target: r2(aq + 1) };
   r = await api('/api/bracket/activate', { symbol: 'AAPL', qty: 1, ...aaplLv, orderType: 'LMT' });
@@ -211,10 +197,8 @@ async function main() {
   else fail('symbol switch disarms the live bracket', 'no audit line');
   await waitIdle();
 
-  // Scenario 9: parent rejected by IB returns to closed, nothing
-  // resting. Expected to FAIL on first run: bracket.ts does not yet
-  // move the machine to closed on a reject. That is the suite finding
-  // the gap, per the plan.
+  
+
   r = await api('/api/bracket/activate', { symbol: SYMBOL, qty: 1, entry: 150.123456, stop: 150.11, target: 150.2, orderType: 'LMT' });
   if (!r.ok) throw new Error('reject-test activation call itself failed: ' + JSON.stringify(r));
   try {
@@ -229,7 +213,6 @@ async function main() {
   await api('/api/bracket/deactivate', { reason: 'scenario 9 cleanup' });
   await waitIdle();
 
-  // Leave a resting SPY bracket on the book for the restart scenario.
   const q2 = await quote(SYMBOL);
   const restLv = { entry: r2(q2 - 3), stop: r2(q2 - 4), target: r2(q2 + 1) };
   r = await api('/api/bracket/activate', { symbol: SYMBOL, qty: 1, ...restLv, orderType: 'LMT' });
@@ -240,8 +223,7 @@ async function main() {
 }
 
 async function reconnect() {
-  // Scenario 8: after a restart the bracket must be rebuilt from
-  // openOrder callbacks and activations reopen only after reconcile.
+
   const sawUnreconciled = await (async () => {
     const deadline = Date.now() + 3000;
     while (Date.now() < deadline) {
