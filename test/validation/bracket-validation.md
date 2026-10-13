@@ -2,6 +2,11 @@
 
 Date: 2026-10-11. Status: confirmed against live code.
 
+The mapping below is the tradehub-go ancestor of this app, kept with
+its Go package and test names as history. The live e2e suite for this
+repo is `test/bracket/{api,web,reconnect}/`; notes on it are at the
+end of this file.
+
 Every scenario below is implemented in `internal/bracket/manager.go`
 and covered by a passing test in `internal/bracket/manager_test.go`.
 Packages `internal/bracket` and `internal/execution` tested green on
@@ -55,3 +60,23 @@ working together:
 3. Position reconciliation: the live position feed is a source of
    truth independent of order status callbacks, so an entry fill can
    never be missed
+
+## Live suite notes (TypeScript, 2026-10-13)
+
+The e2e suite maps one file per scenario under `test/bracket/`:
+`api/` for HTTP + SSE checks, `web/` for Playwright checks, and
+`reconnect/` for the rebuild after an app restart. The startup gate
+moved to the initialization area on 2026-10-13; see
+initialization-validation.md.
+
+Design decisions carried over from the original plan and still in
+force:
+
+- FILLED stands in for PARTIAL in e2e. Partial fills cannot be forced
+  reliably on paper, and the FILLED path exercises the same entry-lock
+  code. The PARTIAL distinction stays covered by inspection
+- Move-during-canceling is not tested e2e. This app refuses the move
+  instead of queueing it, and the refusal window is milliseconds on
+  paper. The design difference is recorded here by design
+- Every scenario leaves the book clean: whatever it activates it
+  deactivates, and the cancel acks land in audit.log
