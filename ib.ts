@@ -4,6 +4,7 @@ import { emit } from "./emit";
 import { audit } from "./log";
 import * as bracket from "./bracket";
 import * as chart from "./chart";
+import type { ConnState } from "./wire";
 
 const INFO_CODES = new Set([2104, 2106, 2158]);
 const DISCONNECT_CODES = new Set([1100, 2110, 1300]);
@@ -13,7 +14,7 @@ function argVal(name: string, dflt: string): string {
   return i >= 0 ? process.argv[i + 1] : dflt;
 }
 
-export const state = {
+export const state: ConnState = {
   host: argVal("--host", "127.0.0.1"),
   ibPort: Number(argVal("--ibport", "4001")),
   webPort: Number(argVal("--port", "8080")),

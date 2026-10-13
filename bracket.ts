@@ -2,28 +2,9 @@ import { OrderAction, OrderType } from "@stoqey/ib";
 import * as ibmod from "./ib";
 import { audit } from "./log";
 import { emit } from "./emit";
+import type { Bracket, BracketSnapshot, Leg } from "./wire";
 
-export interface Leg {
-  orderId: number;
-  status: string;
-  filled: number;
-  avgPrice: number;
-}
-
-export interface Bracket {
-  symbol: string;
-  qty: number;
-  entry: number;
-  stop: number;
-  target: number;
-  orderType: "LMT" | "MKT";
-  state: "working" | "partial" | "closed";
-  entryLocked: boolean;
-  parent: Leg;
-  stopLeg: Leg;
-  targetLeg: Leg;
-  ocaGroup: string;
-}
+export type { Bracket, Leg } from "./wire";
 
 let current: Bracket | undefined;
 let lastClosed: Bracket | undefined;
@@ -420,7 +401,7 @@ export function flatten(symbol: string): { ok: boolean; error?: string } {
   return { ok: true };
 }
 
-export function snapshot(): Record<string, unknown> {
+export function snapshot(): BracketSnapshot {
   return {
     current: current ?? lastClosed ?? null,
     _pending: cancelsInFlight(),

@@ -2,21 +2,9 @@
 import { BarSizeSetting, TickByTickDataType, WhatToShow } from "@stoqey/ib";
 import * as ibmod from "./ib";
 import { emit } from "./emit";
+import type { Bar, DepthBook, Trade } from "./wire";
 
-export interface Bar {
-  time: number;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  volume: number;
-}
-
-export interface Trade {
-  time: number;
-  price: number;
-  size: number;
-}
+export type { Bar, Trade } from "./wire";
 
 let lastQuote: Trade | null = null;
 
@@ -160,7 +148,7 @@ export function onDepth(reqId: number, pos: number, op: number, side: number, pr
   emit("market", { t: "depth", book: bookSnapshot() });
 }
 
-export function bookSnapshot(): { bids: { price: number; size: number }[]; asks: { price: number; size: number }[] } {
+export function bookSnapshot(): DepthBook {
   const arr = (m: Map<number, { price: number; size: number }>) =>
     [...m.entries()].sort((a, b) => a[0] - b[0]).map(([, v]) => v);
   return { bids: arr(book.bids), asks: arr(book.asks) };

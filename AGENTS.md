@@ -75,6 +75,10 @@ work must transfer cleanly between them (copied from
 
 ## Testing and validation
 
+- `run-all.sh` starts with the static gate: `npx tsc --noEmit` over the
+  app against the wire types in `wire.ts`. A type break fails in
+  seconds, gateway closed, and no suite starts. Then each area runner
+  runs in turn.
 - Paper endpoints only, both safe for destructive scenarios. 4001 is IB
   Gateway paper, 7497 is TWS paper. Full suite:
   `bash test/run-all.sh 7497`
@@ -132,3 +136,9 @@ work must transfer cleanly between them (copied from
   be blocked.
 - Every place, cancel, modify, reject, and fill lands in the
   append-only `audit.log`.
+- Wire types live in `wire.ts`. Every payload that crosses an SSE
+  stream or an HTTP response is declared there, the app compiles
+  against them, and `npx tsc --noEmit` (the first step of
+  `test/run-all.sh`) fails the run on any drift. Tests convert to
+  TypeScript against these types last; until then they share the
+  definitions by convention, not by import.
