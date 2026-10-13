@@ -44,7 +44,7 @@ test/
 
 ## Scenarios
 
-API layer, `bracket-api.mjs`, in order:
+API layer, one file per scenario in `test/bracket/api/`, in order:
 
 1. Reconcile gate: `POST /api/arm` immediately after connect is
    refused until `/status` reports `reconciled: true`
@@ -71,7 +71,7 @@ API layer, `bracket-api.mjs`, in order:
    arm call accepted then the reject arrives from IB, snapshot ends
    closed with nothing resting, audit.log carries the error
 
-Browser layer, `bracket.spec.mjs`:
+Browser layer, one file per scenario in `test/bracket/web/`:
 
 1. Arm needs the confirm modal. Click arm, modal appears, click
    cancel, assert no bracket in the snapshot. Then arm through the
@@ -90,11 +90,11 @@ Browser layer, `bracket.spec.mjs`:
    deactivate-while-filled cancels the children and leaves the entry
    position naked, and the GUI had no way to close it
 2. `test/bracket/run-bracket-test.sh`
-3. `test/bracket/bracket-api.mjs`. Runs scenarios 1-7 and 9 in
+3. `test/bracket/api/*.ts`. Runs scenarios 01-07 and 09 in
    part one, then leaves a resting SPY bracket on the book. The
    runner restarts the app and the script runs again with the
    `reconnect` argument for scenario 8
-4. `test/bracket/bracket.spec.mjs`
+4. `test/bracket/web/*.ts`
 5. Full run against paper (4001 or 7497), fix what the suite finds, then record
    results back into `test/validation/bracket-validation.md`
 

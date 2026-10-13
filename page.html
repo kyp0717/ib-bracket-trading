@@ -687,7 +687,7 @@ for (const def of LEVELS) {
   row.appendChild(price);
   $('ch-col').appendChild(row);
 
-  levelEls[def.key] = { line, tag, row, price, label: def.label };
+  levelEls[def.key] = { line, tag, row, price, name, label: def.label };
   bindDrag(tag, def.key, false);
   bindDrag(row, def.key, true);
 
@@ -850,6 +850,7 @@ function renderLevels(){
       view.row.style.display = 'flex';
       view.row.style.opacity = '0.85';
       view.row.style.top = clamped + 'px';
+      view.name.textContent = label;
       view.price.textContent = dir + ' ' + price.toFixed(2);
       continue;
     }
@@ -860,6 +861,7 @@ function renderLevels(){
     view.row.style.display = 'flex';
     view.row.style.opacity = '1';
     view.row.style.top = y + 'px';
+    view.name.textContent = label;
     view.price.textContent = price.toFixed(2);
   }
   renderLegStatus();

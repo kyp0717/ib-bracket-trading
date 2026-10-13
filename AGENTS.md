@@ -71,21 +71,42 @@ work must transfer cleanly between them (copied from
 
 ## Machine-specific facts
 
-(none recorded yet — add them here as they come up)
+- linden: IB Gateway **paper** listens on port 4002 (not 4001). The earlier
+  note that 4002 was a live port was wrong; it is paper and safe for
+  destructive scenarios. Run the suite here as `bash test/run-all.sh 4002`.
+- linden: the IB Gateway paper socket drops occasionally mid-run (a few
+  times per hour). The app reconnects and reconciles on its own; expect
+  extra `reconcile` lines in audit.log during a run and do not treat
+  them as failures by themselves.
 
 ## Testing and validation
 
-- `run-all.sh` starts with the static gate: `npx tsc --noEmit` over the
-  app against the wire types in `wire.ts`. A type break fails in
-  seconds, gateway closed, and no suite starts. Then each area runner
-  runs in turn.
+- `run-all.sh` starts with the static gate: `tsc --noEmit` over the
+  app and every test against the wire types in `wire.ts`. A type break
+  fails in seconds, gateway closed, and no suite starts. Then each
+  area runner runs in turn.
 - Paper endpoints only, both safe for destructive scenarios. 4001 is IB
-  Gateway paper, 7497 is TWS paper. Full suite:
-  `bash test/run-all.sh 7497`
+  Gateway paper, 7497 is TWS paper. On linden the IB Gateway paper port
+  is 4002 (see machine facts). Full suite:
+  `bash test/run-all.sh 7497` (linden: `bash test/run-all.sh 4002`).
+- Run the full suite only while the regular session is open and aim to
+  finish by 15:45 ET. Flatten uses a MKT order, and after the 16:00 ET
+  close the gateway queues MKT orders for the next open while still
+  accepting them. The app reports ok and the position silently
+  survives, which turns later scenarios red in confusing ways. See
+  resource/lessons/20261013-mkt-orders-queue-after-close.md.
 - Each test area lives in its own folder under `test/`: `bracket/`,
   `depth/`, `health-check/`. Shared helpers live at the test root:
-  `suite.mjs` (pass/fail, waits, SSE state, evidence paths) and
-  `web.mjs` (browser setup and screenshots).
+  `suite.ts` (pass/fail, waits, SSE state, typed API helpers, evidence
+  paths), `web.ts` (browser setup and screenshots), and `sse.ts`
+  (EventSource replacement). All test code is TypeScript; scenarios
+  run through `tsx`, and the static gate type-checks them on every run.
+- GUI testing uses Playwright, through the `playwright-core`
+  devDependency in `web.ts`. Every GUI behavior (modals, buttons,
+  drag feedback, rendered panels) is proven by driving the real page
+  in a browser, never by reading page source. Playwright is the only
+  way the web layer is verified; if a change touches page.html, a web
+  scenario must cover it.
 - Scenarios are one file each inside phase folders: `api/` (HTTP + SSE
   data checks), `web/` (Playwright browser checks), `reconnect/`
   (bracket only, runs after the runner restarts the app). File names
@@ -94,17 +115,18 @@ work must transfer cleanly between them (copied from
   scenario never hides the rest. A scenario exits nonzero on any failed
   check.
 - Every runner starts with the doctor step:
-  `node test/health-check/health-check.mjs <port>` proves the IB port
-  is open, the app answers HTTP, and the app is connected and
+  `npx tsx test/health-check/health-check.ts <port>` proves the IB
+  port is open, the app answers HTTP, and the app is connected and
   reconciled before any scenario runs. If the doctor fails, nothing
   starts.
-- Evidence lives in one folder, `test/evidence/` (gitignored). Every
+- Evidence lives in one folder, `test/evidence/` (gitignored, created
+  on first failure). Every
   artifact is named after the test that produced it, so a filename is
   all you need to trace back. Screenshots:
-  `test/<area>/<phase>/<nn>-<story>.mjs` produces
+  `test/<area>/<phase>/<nn>-<story>.ts` produces
   `<area>-<phase>-<nn>-<story>-<what>.png`, generated automatically
   from the scenario file path. Example:
-  `test/bracket/web/03-locked-entry.mjs` on abort writes
+  `test/bracket/web/03-locked-entry.ts` on abort writes
   `test/evidence/bracket-web-03-locked-entry-aborted.png`. App logs:
   `<area>-app-<timestamp>.log` from the runner. To diagnose a red
   scenario, read its evidence file first.
@@ -125,6 +147,15 @@ work must transfer cleanly between them (copied from
   load-bearing first (goal.md, the validation docs). No backward
   sweep: untouched code keeps its comments, and they are removed
   progressively as edits touch each file.
+
+- **Types are the first test suite.** Every value that crosses a
+  boundary (an SSE stream, an HTTP response, a function that hands
+  data to another module) gets a named type in `wire.ts` or at the
+  function boundary, never `any` and never `Record<string,
+  unknown>`. The compiler runs before any suite; make it earn its
+  keep. When a shape changes, change the type first and let the
+  compiler point at every consumer. This is the Pocock rule: the
+  type check is the cheapest red light you have.
 
 ## Safety
 

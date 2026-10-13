@@ -26,7 +26,7 @@ wait_app() {
 }
 
 doctor() {
-  if ! node test/health-check/health-check.mjs "$IB_PORT"; then
+  if ! npx tsx test/health-check/health-check.ts "$IB_PORT"; then
     echo "health check failed, suites not run"
     pkill -f "tsx server.ts" 2>/dev/null
     exit 1
@@ -40,7 +40,7 @@ run_files() {
   local f
   for f in "$@"; do
     echo "-- $f"
-    node "$f" || rc=1
+    npx tsx "$f" || rc=1
   done
   return $rc
 }
@@ -58,11 +58,11 @@ doctor
 echo "health check ok"
 
 echo "== api scenarios =="
-run_files test/depth/api/*.mjs
+run_files test/depth/api/*.ts
 p1=$?
 
 echo "== gui scenarios =="
-run_files test/depth/web/*.mjs
+run_files test/depth/web/*.ts
 p2=$?
 
 pkill -f "tsx server.ts" 2>/dev/null

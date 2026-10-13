@@ -1,14 +1,14 @@
-import { makeSuite, live, waitFor, api, waitIdle } from '../../suite.mjs';
+import { makeSuite, live, waitFor, waitIdle, activate, deactivate } from '../../suite';
 
 const { pass, fail, summary } = makeSuite('api 01 reconcile gate');
 const { st, close } = live();
 
 try {
-  const r = await api('/api/bracket/activate', { symbol: 'SPY', qty: 1, entry: 1, stop: 0.5, target: 2, orderType: 'LMT' });
+  const r = await activate({ symbol: 'SPY', qty: 1, entry: 1, stop: 0.5, target: 2, orderType: 'LMT' });
   if (!r.ok && /reconcil/i.test(r.error || '')) {
     pass('activation refused before reconcile completes');
   } else if (r.ok) {
-    await api('/api/bracket/deactivate', { reason: 'gate test cleanup' });
+    await deactivate('gate test cleanup');
     pass('reconcile finished before first activation attempt (cleanup done)');
   } else {
     fail('activation refused before reconcile completes', JSON.stringify(r));

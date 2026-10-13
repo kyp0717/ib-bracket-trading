@@ -6,13 +6,13 @@ Date: 2026-10-12. Status: working notes, read before adding tests.
 
 Every behavior is tested at the lowest layer that can see it.
 
-- **API layer** (`test/<area>/api/*.mjs`).
+- **API layer** (`test/<area>/api/*.ts`).
   Plain HTTP calls against our own server (`POST /api/bracket/activate`
   and friends), plus SSE streams watched for live state (conn and
   bracket on `/events`, data on `/market`), plus `audit.log` greps to
   prove the gateway really acked. No browser. All order-state and
   gateway behavior lives here.
-- **Web layer** (`test/<area>/web/*.mjs`). Playwright
+- **Web layer** (`test/<area>/web/*.ts`). Playwright
   drives a real browser. Only for things a human can see: modals, button
   clicks, drag feedback, DOM rendering. If curl can prove it, it does
   not belong here. Screenshots on failure land in
@@ -52,15 +52,18 @@ Rules that keep the suite trustworthy:
 
 ## The moving parts
 
+- `run-all.sh` is the front door. Its first step is the static gate:
+  `npx tsc --noEmit` over the app against the wire types in `wire.ts`.
+  If types break, nothing else runs. Then it calls each area runner.
 - `run-<area>-test.sh` is the director. It kills stray app processes, starts
   `npx tsx server.ts --ibport <port>`, waits for the app to listen, then
-  runs `test/health-check/health-check.mjs` as the doctor step: three
+  runs `test/health-check/health-check.ts` as the doctor step: three
   fast probes (IB port open, app answers HTTP, app connected and
   reconciled). If the doctor fails, no suite starts. Then it runs each
   suite layer, kills the app, prints a summary, exits nonzero on any
   failure. The bracket runner restarts the app mid-run on purpose: one
   scenario covers "app died and came back, did reconcile rebuild state".
-- `sse.mjs` is a 25-line EventSource replacement at `test/sse.mjs`. Node
+- `sse.ts` is a 25-line EventSource replacement at `test/sse.ts`. Node
   has no global EventSource on this machine. Reuse it from every new
   suite.
 - The plan doc under `test/validation/` (recipe) is written before or
@@ -70,13 +73,13 @@ Rules that keep the suite trustworthy:
 ## Adding a check to an existing area
 
 1. Write the scenario line in the area's validation doc.
-2. Create `test/<area>/api/NN-name.mjs` or `test/<area>/web/NN-name.mjs`
+2. Create `test/<area>/api/NN-name.ts` or `test/<area>/web/NN-name.ts`
    (NN keeps the runner's execution order). Copy a sibling scenario as
-   the template; shared helpers come from `test/suite.mjs` and
-   `test/web.mjs`.
+   the template; shared helpers come from `test/suite.ts` and
+   `test/web.ts`.
 3. Run just that file while iterating (app must be live):
 
-   `node test/bracket/api/02-single-flight.mjs`
+   `npx tsx test/bracket/api/02-single-flight.ts`
 
 4. Run the area runner, then the full suite, before committing:
 
@@ -87,11 +90,11 @@ Rules that keep the suite trustworthy:
 1. Create `test/<area>/` with `run-<area>-test.sh` plus `api/` and
    `web/` folders (add `reconnect/` only if a scenario needs an app
    restart). Copy the depth or bracket files as templates.
-2. `api/NN-name.mjs`: copy a sibling scenario. Poke the app over HTTP,
-   watch the SSE streams through `live()` from `test/suite.mjs`,
+2. `api/NN-name.ts`: copy a sibling scenario. Poke the app over HTTP,
+   watch the SSE streams through `live()` from `test/suite.ts`,
    assert, pass/fail.
-3. `web/NN-name.mjs`: copy a sibling scenario. `guiPage(symbol)` from
-   `test/web.mjs` sets up the browser; compare rendered output against
+3. `web/NN-name.ts`: copy a sibling scenario. `guiPage(symbol)` from
+   `test/web.ts` sets up the browser; compare rendered output against
    the SSE state.
 4. Runner: same skeleton as the depth runner, with the doctor step,
    per-phase loops, and evidence save on failure.

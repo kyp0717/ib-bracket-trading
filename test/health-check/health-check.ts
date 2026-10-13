@@ -1,20 +1,14 @@
-// Health check, the doctor step every runner calls before any suite.
-// Three fast read-only probes:
-//   1. the IB port accepts connections
-//   2. the app answers HTTP
-//   3. /status reports connected and reconciled
-// Usage: node test/health-check/health-check.mjs [ib-port]
-
 import { connect } from 'node:net';
+import { getStatus } from '../suite';
+import type { Status } from '../suite';
 
-const APP = process.env.E2E_APP_ADDR || 'http://127.0.0.1:8080';
 const IB_PORT = Number(process.argv[2] || 4001);
 
 let failures = 0;
-function pass(name) { console.log('PASS ' + name); }
-function fail(name, why) { console.log('FAIL ' + name + ': ' + why); failures++; }
+function pass(name: string) { console.log('PASS ' + name); }
+function fail(name: string, why: string) { console.log('FAIL ' + name + ': ' + why); failures++; }
 
-function portOpen(port) {
+function portOpen(port: number): Promise<boolean> {
   return new Promise((resolve) => {
     const s = connect(port, '127.0.0.1');
     s.once('connect', () => { s.end(); resolve(true); });
@@ -31,14 +25,13 @@ async function main() {
       IB_PORT === 7497 ? 'start TWS with the paper API port 7497' : 'start IB Gateway with the paper port 4001');
   }
 
-  let status = null;
+  let status: Status | null = null;
   try {
-    const r = await fetch(APP + '/status');
-    if (r.ok) status = await r.json();
+    status = await getStatus();
   } catch {
   }
   if (status) pass('app answers http');
-  else fail('app answers http', `no response from ${APP}/status, is the app running?`);
+  else fail('app answers http', `no response from /status, is the app running?`);
 
   if (status) {
     if (status.connected && status.reconciled) pass('app connected and reconciled to ib');

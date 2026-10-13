@@ -1,12 +1,12 @@
-import { makeSuite, live, waitFor, api, waitAcked, waitIdle } from '../../suite.mjs';
+import { makeSuite, live, waitFor, waitAcked, waitIdle, deactivate } from '../../suite';
 
 const { pass, fail, summary } = makeSuite('api 04 deactivate working');
 const { st, close } = live();
 
 try {
-  await waitFor('working bracket from previous scenario', 15000, () => st.bracket && st.bracket.state === 'working');
-  const ids = [st.bracket.parent.orderId, st.bracket.stopLeg.orderId, st.bracket.targetLeg.orderId];
-  const r = await api('/api/bracket/deactivate', { reason: 'scenario 4' });
+  await waitFor('working bracket from previous scenario', 15000, () => st.bracket && st.bracket!.state === 'working');
+  const ids = [st.bracket!.parent.orderId, st.bracket!.stopLeg.orderId, st.bracket!.targetLeg.orderId];
+  const r = await deactivate('scenario 4');
   if (r.ok) pass('deactivate while working accepted');
   else fail('deactivate while working accepted', JSON.stringify(r));
   await waitAcked(ids);

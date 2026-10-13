@@ -52,6 +52,8 @@ export function blockActivations(): void {
 export function beginReconcile(): void {
   activationsBlocked = true;
   reconcilePending = { openOrders: true, positions: true };
+  reconcileParents.clear();
+  reconcileOrphans.clear();
   if (reconcileTimer) clearTimeout(reconcileTimer);
   reconcileTimer = setTimeout(finishReconcileIfDone, 5000);
   try {
@@ -310,6 +312,7 @@ export function onOrderStatus(
 }
 
 const reconcileParents = new Map<number, any>();
+const reconcileOrphans = new Map<number, { orderId: number; symbol: string; order: any }[]>();
 
 export function onOpenOrder(orderId: number, symbol: string, order: any): void {
   const known = legIndex.get(orderId);
@@ -320,9 +323,24 @@ export function onOpenOrder(orderId: number, symbol: string, order: any): void {
   if (!order.parentId) {
     if (order.orderType === "LMT" || order.orderType === "MKT") {
       reconcileParents.set(orderId, { symbol, order });
+      const orphans = reconcileOrphans.get(orderId);
+      if (orphans) {
+        reconcileOrphans.delete(orderId);
+        for (const o of orphans) attachReconciledLeg(o.orderId, o.symbol, o.order);
+      }
     }
     return;
   }
+  if (!reconcileParents.has(order.parentId)) {
+    const list = reconcileOrphans.get(order.parentId) ?? [];
+    list.push({ orderId, symbol, order });
+    reconcileOrphans.set(order.parentId, list);
+    return;
+  }
+  attachReconciledLeg(orderId, symbol, order);
+}
+
+function attachReconciledLeg(orderId: number, symbol: string, order: any): void {
   const parent = reconcileParents.get(order.parentId);
   if (!parent) return;
   let br = current;

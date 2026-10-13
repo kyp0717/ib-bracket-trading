@@ -1,5 +1,5 @@
-import { makeSuite, live, waitFor } from '../../suite.mjs';
-import { guiPage, snap } from '../../web.mjs';
+import { makeSuite, live, waitFor } from '../../suite';
+import { guiPage, snap } from '../../web';
 
 const { pass, fail, summary } = makeSuite('web 02 values colors mm');
 const { st, close } = live();
@@ -8,14 +8,14 @@ const { browser, page } = await guiPage('SPY');
 try {
   await waitFor('depth rows in the DOM', 20000, async () =>
     (await page.$$('#ch-depth .tc-depth-row')).length > 0);
-  await waitFor('depth payload', 20000, () => st.depth && st.depth.bids.length > 0);
+  await waitFor('depth payload', 20000, () => st.depth && st.depth!.bids.length > 0);
 
   const rendered = await page.$$eval('#ch-depth .tc-depth-row', (rows) =>
     rows.map((r) => {
-      const c = [...r.querySelectorAll('.tc-depth-cell')];
-      return { bidPx: c[2] ? c[2].textContent.trim() : '', color: c[2] ? c[2].style.color : '' };
+      const c = [...r.querySelectorAll<HTMLElement>('.tc-depth-cell')];
+      return { bidPx: c[2] ? c[2].textContent!.trim() : '', color: c[2] ? c[2].style.color : '' };
     }));
-  const payloadBids = new Set(st.depth.bids.map((r) => r.price.toFixed(2)));
+  const payloadBids = new Set(st.depth!.bids.map((r) => r.price.toFixed(2)));
   const renderedBids = rendered.map((r) => r.bidPx).filter((t) => t !== '');
   if (renderedBids.length > 0 && renderedBids.every((p) => payloadBids.has(p))) {
     pass('rendered bid prices match the SSE payload');

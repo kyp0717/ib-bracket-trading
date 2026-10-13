@@ -1,4 +1,4 @@
-import { makeSuite, live, waitFor, api, waitAcked, waitIdle } from '../../suite.mjs';
+import { makeSuite, live, waitFor, waitAcked, waitIdle, deactivate } from '../../suite';
 
 const { pass, fail, summary } = makeSuite('reconnect 01 rebuild');
 const { st, close } = live();
@@ -15,14 +15,14 @@ try {
   if (sawUnreconciled) pass('activations blocked while reconnect reconcile runs');
   else pass('reconcile finished before first poll');
 
-  await waitFor('rebuilt bracket after restart', 60000, () => st.reconciled && st.bracket && st.bracket.state === 'working');
+  await waitFor('rebuilt bracket after restart', 60000, () => st.reconciled && st.bracket && st.bracket!.state === 'working');
   pass('reconnect reconcile rebuilds the resting bracket');
-  const b = st.bracket;
+  const b = st.bracket!;
   if (b.stop > 0 && b.target > 0 && b.qty === 1) pass('rebuilt bracket keeps levels and quantity');
   else fail('rebuilt bracket keeps levels and quantity', JSON.stringify({ stop: b.stop, target: b.target, qty: b.qty }));
 
   const ids = [b.parent.orderId, b.stopLeg.orderId, b.targetLeg.orderId];
-  const r = await api('/api/bracket/deactivate', { reason: 'reconnect scenario cleanup' });
+  const r = await deactivate('reconnect scenario cleanup');
   if (r.ok) pass('deactivate accepted after reconnect');
   else fail('deactivate accepted after reconnect', JSON.stringify(r));
   await waitAcked(ids);

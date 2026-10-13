@@ -1,14 +1,14 @@
-
 export class EventSource {
-  constructor(url) {
-    this.onmessage = null;
-    this._closed = false;
+  onmessage: ((e: { data: string }) => void) | null = null;
+  private closed = false;
+
+  constructor(url: string) {
     fetch(url).then(async (res) => {
       if (!res.ok || !res.body) return;
       const reader = res.body.getReader();
       const dec = new TextDecoder();
       let buf = '';
-      while (!this._closed) {
+      while (!this.closed) {
         const { done, value } = await reader.read();
         if (done) break;
         buf += dec.decode(value, { stream: true });
@@ -26,7 +26,7 @@ export class EventSource {
     }).catch(() => {});
   }
 
-  close() {
-    this._closed = true;
+  close(): void {
+    this.closed = true;
   }
 }

@@ -8,7 +8,7 @@ Data layer: `test/depth/api/`. Rendering layer: `test/depth/web/`. Runner:
 ## Scenario to code mapping
 
 - **Book arrives after symbol load**: load SPY, wait for bids and asks
-  on the SSE `depth` message. Test: `test/depth/api/01-book-arrives.mjs`
+  on the SSE `depth` message. Test: `test/depth/api/01-book-arrives.ts`
 - **Book shape**: best bid below best ask, bids best-first descending,
   asks best-first ascending, sizes positive. Scenario 2-3
 - **Refresh on symbol switch**: SPY best bid captured, switch to QQQ,
@@ -26,7 +26,7 @@ Data layer: `test/depth/api/`. Rendering layer: `test/depth/web/`. Runner:
 - **Values match payload**: every rendered bid price appears in the SSE
   book snapshot. Test: `test/depth/web/`
 - **Tier colors**: price cells carry an explicit color. Test:
-  `depth.spec.mjs`
+  `test/depth/web/`
 - **MM cells exist**: two MM cells per row. They are structurally
   present and empty because this feed aggregates per price level. A
   future L2 feed with market maker ids must fill them without changing
