@@ -40,11 +40,20 @@ crossed a scenario boundary, and read the app log warnings from the
 whole run, not just the failing phase.
 
 ## What works after the close, for after-hours runs
-LMT orders fill in the extended session and the app already sets
-outsideRth on every order, so most of the suite runs fine past 16:00.
-Only MKT orders queue, and that is an exchange rule, not an IB Gateway
-setting: there is no checkbox that makes ARCA accept market orders after
-the close. The structural fix is flatten() sending a marketable limit at
-the current bid instead of MKT, which filled in seconds during cleanup.
-That change is not implemented yet; until it is, the regular-hours rule
-above stands.
+The limit-only windows are 04:00 to 09:30 ET and 16:00 to 20:00 ET,
+both premarket and postmarket. Outside those windows, regular session
+rules apply. The rule for the app is simple: whenever flatten runs
+inside a limit-only window, it must send a limit, not MKT. LMT orders
+fill in the extended session and the app already sets outsideRth on
+every order, so most of the suite runs fine past 16:00. Stop legs rest
+at the gateway rather than the venue, so they are unaffected. Only MKT
+orders queue, and that is an exchange rule, not an IB Gateway setting:
+there is no checkbox that makes ARCA accept market orders after the
+close.
+
+The cleanest implementation is not a clock check at all: flatten sends
+a marketable limit at the current bid in every session. It fills like a
+market order during regular hours and stays legal after them. That
+change is not implemented yet; during cleanup a LMT sell at the bid
+filled in seconds at 16:15 ET, so the behavior is proven. Until it
+lands, the regular-hours rule above stands.
