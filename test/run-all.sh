@@ -1,10 +1,17 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 PORT="${1:-4001}"
+
+echo "== static gate: tsc --noEmit =="
+if ! ./node_modules/.bin/tsc --noEmit; then
+  echo "type check failed, suites not run"
+  exit 1
+fi
+echo "types ok"
 
 bash test/bracket/run-bracket-test.sh "$PORT"
 b=$?
