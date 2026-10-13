@@ -1,9 +1,10 @@
 # Agent Instructions: ib-bracket-trading
 
 Bracket-order trading web app against IB Gateway / TWS, in TypeScript
-on Node.js. One language for server and GUI, no build step. Design
-contract: `resource/goal.md`. Validation recipe:
-`resource/how-validation-works.md`.
+on Node.js. One language for server and GUI, no build step. This file
+is the design contract and the validation recipe; the lessons in
+resource/lessons/ carry what the runs taught us, and
+resource/go-live/ carries the path to real money.
 
 ## Audience: the developer is not a frontend engineer
 
@@ -151,9 +152,41 @@ work must transfer cleanly between them (copied from
   scenario, read its evidence file first.
 - To add a scenario: copy a sibling scenario into the right phase
   folder with the next number, name the file after what it proves, and
-  follow the pass/fail pattern in `resource/how-validation-works.md`.
+  follow the check pattern: one story per file, every assertion is one
+  `pass(name)` / `fail(name, what-you-saw)` line whose name says what
+  broke, reached through `waitFor` with a timeout. Never sleep and
+  hope, never console.log and eyeball.
 - Never leave a position or a resting bracket on the paper account when
   a session ends. Flatten and deactivate before stopping.
+
+## Speed rules
+
+- `npm install && npx tsx server.ts` must run the app. Nothing else
+- Every iteration is edit, restart, click activate. Target under ten
+  seconds round trip
+- A new dependency needs one sentence of justification in the commit
+  message. Prefer the stdlib
+- The GUI is ugly by default. Function first; a plain dark page is
+  enough
+
+## Environment facts that shape the tests
+
+- TWS reports API cancels as status `ApiCancelled`, not `Cancelled`.
+  Treat it as a terminal cancel everywhere
+- `tickByTickAllLast` fires `(reqId, tickType, time as string, price,
+  size)`. Skip tickType, Number() the time
+- TWS replays open orders on connect before nextValidId. Reconcile
+  starts on the `connected` event, not on nextValidId
+- The gateway replays children before their parent on reqOpenOrders;
+  reconcile must buffer orphans (fixed in bracket.ts, lesson in
+  resource/lessons/)
+- TWS sometimes sits on an order batch for tens of seconds (2109
+  warning). Fill scenario timeouts are 60s, not 30s
+- Orders placed by clientId 90 can only be seen and cancelled by
+  clientId 90. A cleanup probe needs the same id as the app
+- `pkill -f "tsx server.ts"` matches your own shell if the string
+  appears in it. Kill in its own shell call, or use `server[.]ts`
+  (lesson in resource/lessons/)
 
 ## Coding guidelines
 
@@ -162,8 +195,8 @@ work must transfer cleanly between them (copied from
   `resource/` carry the why. A real constraint gets encoded in a type,
   a test, or a check, never a comment. When a change touches code that
   carries comments, strip them in that change and relocate anything
-  load-bearing first (goal.md, AGENTS.md, or a lesson in
-  resource/lessons/). No backward
+  load-bearing first (AGENTS.md or a lesson in resource/lessons/). No
+  backward
   sweep: untouched code keeps its comments, and they are removed
   progressively as edits touch each file.
 

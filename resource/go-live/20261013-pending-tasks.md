@@ -34,7 +34,7 @@ land, and move finished items to the bottom under Done with the date.
    server.ts listen address.
 7. Write the manual escape hatch: how to flatten from IB's own
    interface if the app dies mid-position. Belongs in
-   resource/go-live/handoff/. Status: open.
+   resource/handoff/. Status: open.
 
 ## Done
 
