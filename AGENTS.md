@@ -94,7 +94,7 @@ work must transfer cleanly between them (copied from
   close the gateway queues MKT orders for the next open while still
   accepting them. The app reports ok and the position silently
   survives, which turns later scenarios red in confusing ways. See
-  resource/lessons/20261013-the-1600-close-symptoms-appear-far-from-causes.md.
+  resource/lessons/20261013-market-orders-are-limit-only-outside-regular-hours.md.
 - Each test area lives in its own folder under `test/`: `bracket/`,
   `depth/`, `health-check/`. Shared helpers live at the test root:
   `suite.ts` (pass/fail, waits, SSE state, typed API helpers, evidence
