@@ -108,6 +108,13 @@ work must transfer cleanly between them (copied from
   in a browser, never by reading page source. Playwright is the only
   way the web layer is verified; if a change touches page.html, a web
   scenario must cover it.
+- Every new behavior needs two proofs, in this order. First the data
+  proof: an api scenario asserting the values that cross the wire
+  (SSE payload or HTTP response). Then the visual proof: a web
+  scenario asserting the same values appear in the rendered page.
+  One proof without the other is not done: data without the visual
+  check can render wrong and pass, and a visual check without the
+  data check cannot say whether the app or the rendering lied.
 - Scenarios are one file each inside phase folders: `api/` (HTTP + SSE
   data checks), `web/` (Playwright browser checks), `reconnect/`
   (bracket only, runs after the runner restarts the app). One story per
