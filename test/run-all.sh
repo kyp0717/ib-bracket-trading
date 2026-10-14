@@ -4,7 +4,11 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-PORT="${1:-4001}"
+if [ -z "${1:-}" ]; then
+  echo "IB port required. 4002 is paper on linden, 4001 is paper on woodlawn, and 4001 is LIVE on linden. See AGENTS.md 'IB endpoints, live vs paper'."
+  exit 2
+fi
+PORT="$1"
 
 echo "== static gate: tsc --noEmit =="
 if ! ./node_modules/.bin/tsc --noEmit; then

@@ -288,7 +288,8 @@ Two consequences to respect:
 - IBKR: Interactive Brokers, the broker the app connects to
 - IB Gateway: IBKR's headless API server; TWS is the desktop
   workstation, same API through a different program
-- TWS: Trader Workstation, IBKR's desktop app, paper port 7497
+- TWS: Trader Workstation, IBKR's desktop app; remapped on this setup
+  to live 7497 and paper 7500 (see "IB endpoints, live vs paper")
 - SSE: Server-Sent Events, the one-way push pipes (/events, /market)
   that stream updates from the app to the browser
 - OCA: One-Cancels-All, an IB order group where filling one order
