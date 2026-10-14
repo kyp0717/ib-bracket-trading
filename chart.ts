@@ -2,6 +2,7 @@
 import { BarSizeSetting, Stock, TickByTickDataType, WhatToShow } from "@stoqey/ib";
 import * as ibmod from "./ib";
 import { emit } from "./emit";
+import { audit } from "./log";
 import type { Bar, DepthBook, DepthLevel, Trade } from "./wire";
 
 export type { Bar, Trade } from "./wire";
@@ -78,6 +79,7 @@ export function setSymbol(sym: string): void {
     ibmod.ib.reqHistoricalData(reqIds.hist1m, contract, "", "2 D", BarSizeSetting.MINUTES_ONE, WhatToShow.TRADES, 0, 2, true);
     ibmod.ib.reqHistoricalData(reqIds.hist1d, contract, "", "6 M", BarSizeSetting.DAYS_ONE, WhatToShow.TRADES, 1, 2, false);
     ibmod.ib.reqTickByTickData(reqIds.tape, contract, TickByTickDataType.AllLast, 0, false);
+    audit("subscribe", `tape ${symbol} reqTickByTickData AllLast`);
 
     cdReqId = ibmod.takeOrderIds(1);
     ibmod.ib.reqContractDetails(cdReqId, contract);
@@ -95,6 +97,7 @@ function cancelAll(): void {
     ibmod.ib.cancelHistoricalData(reqIds.hist1m);
     ibmod.ib.cancelHistoricalData(reqIds.hist1d);
     ibmod.ib.cancelTickByTickData(reqIds.tape);
+    audit("cancel", `tape ${symbol} reqTickByTickData`);
     for (const [vid, vb] of books) {
       ibmod.ib.cancelMktDepth(vid, vb.smart);
     }

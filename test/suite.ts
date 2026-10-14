@@ -77,11 +77,12 @@ export interface LiveState {
   depth: DepthBook | null;
   depthMsgs: number;
   tapeMsgs: number;
+  auditLines: string[];
   symbol: string;
 }
 
 export function live(): { st: LiveState; close(): void } {
-  const st: LiveState = { reconciled: false, cancelInFlight: false, bracket: null, depth: null, depthMsgs: 0, tapeMsgs: 0, symbol: '' };
+  const st: LiveState = { reconciled: false, cancelInFlight: false, bracket: null, depth: null, depthMsgs: 0, tapeMsgs: 0, auditLines: [], symbol: '' };
   const onmsg = (e: { data: string }) => {
     const m = JSON.parse(e.data) as SseMsg;
     if (m.t === 'conn') st.reconciled = m.reconciled;
@@ -94,6 +95,7 @@ export function live(): { st: LiveState; close(): void } {
       st.depthMsgs++;
     }
     if (m.t === 'tape') st.tapeMsgs++;
+    if (m.t === 'audit') st.auditLines.push(m.line);
   };
   const es = new EventSource(APP + '/events');
   const mkt = new EventSource(APP + '/market');
