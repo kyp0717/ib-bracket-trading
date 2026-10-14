@@ -19,7 +19,7 @@ try {
   await waitIdle(st);
 
   const orders = (await serverOrders(IB_PORT, 91)).filter((o) => o.symbol === 'SPY');
-  const stop = orders.find((o) => o.orderType === 'STP');
+  const stop = orders.find((o) => o.orderType === 'STP LMT');
   if (stop && stop.auxPrice === newStop && !oldIds.includes(stop.orderId))
     pass('server shows the moved stop as a new generation');
   else

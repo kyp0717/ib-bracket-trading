@@ -155,9 +155,10 @@ export function activate(p: ActivateParams, replacing = false): { ok: boolean; e
     orderId: stopId,
     parentId,
     action: OrderAction.SELL,
-    orderType: OrderType.STP,
+    orderType: OrderType.STP_LMT,
     totalQuantity: p.qty,
     auxPrice: p.stop,
+    lmtPrice: p.stop,
     tif: "GTC",
     transmit: false,
     ocaGroup,
@@ -268,9 +269,10 @@ export function editLevels(lv: Levels): { ok: boolean; error?: string } {
     orderId: br.stopLeg.orderId,
     parentId: br.parent.orderId,
     action: OrderAction.SELL,
-    orderType: OrderType.STP,
+    orderType: OrderType.STP_LMT,
     totalQuantity: br.qty - br.parent.filled > 0 ? br.qty - br.parent.filled : br.qty,
     auxPrice: stop,
+    lmtPrice: stop,
     tif: "GTC",
     transmit: true,
     ocaGroup: br.ocaGroup,
@@ -312,9 +314,8 @@ export function onOrderStatus(
     } else if (status === "Cancelled" || status === "Inactive" || status === "ApiCancelled") {
       flattenOrder = undefined;
       if (flattenWanted) {
-        const wanted = flattenWanted.symbol;
+        placeFlatten(flattenWanted.symbol, flattenWanted.offset);
         flattenWanted = undefined;
-        placeFlatten(wanted);
       }
     }
     return;
@@ -441,17 +442,18 @@ export function hasWorking(): boolean {
 }
 
 let flattenOrder: { orderId: number; symbol: string } | undefined;
-let flattenWanted: { symbol: string } | undefined;
+let flattenWanted: { symbol: string; offset: number } | undefined;
 
-function placeFlatten(symbol: string): void {
+function placeFlatten(symbol: string, offset: number): void {
   const pos = positions.get(symbol) ?? 0;
   if (!pos) return;
   const book = bookSnapshot();
-  const px = pos > 0 ? book.bids[0]?.price : book.asks[0]?.price;
-  if (!px) {
+  const raw = pos > 0 ? book.bids[0]?.price - offset : book.asks[0]?.price + offset;
+  if (!raw || raw <= 0) {
     audit("flatten-refused", `${symbol}: no ${pos > 0 ? "bid" : "ask"} on the book`);
     return;
   }
+  const px = Math.round(raw * 100) / 100;
   const orderId = ibmod.takeOrderIds(1);
   ibmod.place(ibmod.contractFor(symbol), {
     orderId,
@@ -467,19 +469,19 @@ function placeFlatten(symbol: string): void {
   audit("flatten", `${symbol}: ${pos > 0 ? "sell" : "buy"} ${Math.abs(pos)} at ${pos > 0 ? "bid" : "ask"} ${px} order ${orderId}`);
 }
 
-export function flatten(symbol: string): { ok: boolean; error?: string } {
+export function flatten(symbol: string, offset = 0): { ok: boolean; error?: string } {
   const pos = positions.get(symbol) ?? 0;
   if (pos === 0) return { ok: false, error: `no position for ${symbol}` };
   const book = bookSnapshot();
   const px = pos > 0 ? book.bids[0]?.price : book.asks[0]?.price;
   if (!px) return { ok: false, error: `no ${pos > 0 ? "bid" : "ask"} on the book for ${symbol}, refusing blind flatten` };
   if (flattenOrder) {
-    flattenWanted = { symbol };
+    flattenWanted = { symbol, offset };
     ibmod.cancel(flattenOrder.orderId);
     audit("flatten-reprice", `${symbol}: cancel ${flattenOrder.orderId} for reprice`);
     return { ok: true };
   }
-  placeFlatten(symbol);
+  placeFlatten(symbol, offset);
   return { ok: true };
 }
 

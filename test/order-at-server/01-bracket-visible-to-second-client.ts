@@ -29,11 +29,11 @@ try {
     fail('parent sits on the server at the entry price', JSON.stringify(parent));
 
   const stop = orders.find((o) => o.orderId === b.stopLeg.orderId);
-  if (stop && stop.action === 'SELL' && stop.orderType === 'STP' &&
-      stop.auxPrice === b.stop && stop.parentId === b.parent.orderId && stop.status === 'PreSubmitted')
-    pass('stop sits on the server under the parent');
+  if (stop && stop.action === 'SELL' && stop.orderType === 'STP LMT' &&
+      stop.auxPrice === b.stop && stop.lmtPrice === b.stop && stop.parentId === b.parent.orderId && stop.status === 'PreSubmitted')
+    pass('stop sits on the server under the parent as a stop-limit');
   else
-    fail('stop sits on the server under the parent', JSON.stringify(stop));
+    fail('stop sits on the server under the parent as a stop-limit', JSON.stringify(stop));
 
   const target = orders.find((o) => o.orderId === b.targetLeg.orderId);
   if (target && target.action === 'SELL' && target.orderType === 'LMT' &&

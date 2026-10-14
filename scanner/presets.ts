@@ -19,6 +19,8 @@ const liquidLargeCaps = [
   "WMT", "CVX", "MRK", "PEP", "ABT", "ORCL", "AMD", "CSCO", "IBM", "NFLX",
   "CRM", "PLTR", "QCOM", "AMGN", "TXN", "AMAT", "CAT", "GE", "BA", "MCD",
   "NKE", "SBUX", "UPS", "F", "GM", "DE", "SCHW", "MS",
+  "KO", "PFE", "WFC", "VZ", "T", "BMY", "KHC", "KMI", "O", "MRO",
+  "SO", "DAL", "AAL", "CCL", "NOK", "VALE", "HPQ",
 ];
 
 export const presets: Record<string, Preset> = {

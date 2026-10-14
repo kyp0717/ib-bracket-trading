@@ -117,7 +117,8 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === "POST" && path === "/api/bracket/flatten") {
       const body = await readJson(req);
-      const result = bracket.flatten(String(body.symbol ?? "").toUpperCase());
+      const offset = Number(body.offset ?? 0);
+      const result = bracket.flatten(String(body.symbol ?? "").toUpperCase(), Number.isFinite(offset) && offset >= 0 ? offset : 0);
       sendJson(res, result.ok ? 200 : 400, result);
       return;
     }

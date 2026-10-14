@@ -538,11 +538,6 @@ button.tc-col-head.active {
     <div class="tc-chart" id="ch-second"><span class="ch-tag ch-ind" id="ch-ind-tag">VWAP <b class="ind-v" id="ch-ind-vwap"></b> EMA9 <b class="ind-e" id="ch-ind-ema9"></b></span><span class="tc-size" id="ch-tf"><button class="tc-size-btn active" data-tf="10s" type="button">10s</button><button class="tc-size-btn" data-tf="1m" type="button">1m</button><button class="tc-size-btn" data-tf="1d" type="button">1d</button></span></div>
     <div class="ch-side">
       <div class="ch-subhead">
-        <span class="tc-size" id="ch-otype">
-          <span class="tc-size-label">TYPE:</span>
-          <button class="tc-size-btn active" data-ot="LMT" type="button">LMT</button>
-          <button class="tc-size-btn" data-ot="MKT" type="button">MKT</button>
-        </span>
         <div class="tc-size" id="ch-size">
           <span class="tc-size-label">SIZE:</span>
           <button class="tc-size-btn active" data-qty="1" type="button">1</button>
@@ -614,7 +609,6 @@ let bracketActive = false;
 let entryLocked = false;
 let cancelInFlight = false;
 let qty = 1;
-let orderType = 'LMT';
 let tf = '10s';
 let bars = { '10s': new Map(), '1m': new Map(), '1d': new Map() };
 let tapeRows = [];
@@ -1255,7 +1249,7 @@ $('ch-arm').addEventListener('click', () => {
     return;
   }
   $('confirmText').textContent =
-    `${symbol}  qty=${qty}  ${orderType}  entry=${levels.entry}  stop=${levels.stop || 'none'}  target=${levels.target}`;
+    `${symbol}  qty=${qty}  LMT  entry=${levels.entry}  stop=${levels.stop || 'none'}  target=${levels.target}`;
   $('modal').style.display = 'flex';
 });
 $('confirmNo').addEventListener('click', () => { $('modal').style.display = 'none'; });
@@ -1269,7 +1263,7 @@ $('confirmYes').addEventListener('click', async () => {
       entry: levels.entry || 0,
       stop: levels.stop || 0,
       target: levels.target,
-      orderType,
+      orderType: 'LMT',
     });
     $('ch-feedback').textContent = r.ok ? 'bracket activated' : 'rejected: ' + (r.error || '?');
   } catch (e) {
@@ -1284,18 +1278,24 @@ $('ch-size').addEventListener('click', (ev) => {
   document.querySelectorAll('#ch-size .tc-size-btn').forEach((b) => b.classList.toggle('active', b === btn));
   $('ch-feedback').textContent = 'size ' + qty;
 });
-$('ch-otype').addEventListener('click', (ev) => {
-  const btn = ev.target.closest('.tc-size-btn');
-  if (!btn) return;
-  orderType = btn.dataset.ot;
-  document.querySelectorAll('#ch-otype .tc-size-btn').forEach((b) => b.classList.toggle('active', b === btn));
-  $('ch-feedback').textContent = 'type ' + orderType;
-});
 $('ch-tf').addEventListener('click', (ev) => {
   const btn = ev.target.closest('.tc-size-btn');
   if (!btn || btn.dataset.tf === tf) return;
   setCurrentTf(btn.dataset.tf);
 });
+document.addEventListener('keydown', (ev) => {
+  if (ev.key !== 'Delete') return;
+  const t = ev.target;
+  if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return;
+  ev.preventDefault();
+  const offset = ev.shiftKey ? 0.02 : 0;
+  post('/api/bracket/flatten', { symbol, offset }).then((r) => {
+    $('ch-feedback').textContent = r.ok
+      ? (offset ? 'escape sell at bid-0.02 sent' : 'escape sell at bid sent')
+      : 'escape rejected: ' + (r.error || '?');
+  });
+});
+
 const es = new EventSource('/events');
 const mkt = new EventSource('/market');
 es.onmessage = onSse;

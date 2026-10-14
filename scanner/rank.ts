@@ -17,8 +17,8 @@ export function score(c: Candidate): Scored {
   const reasons: string[] = [];
   let score = 0;
 
-  if (c.close < 5 || c.close > 1000) reasons.push("price outside 5..1000");
-  else score += 30 * band(c.close, 15, 400);
+  if (c.close < 2 || c.close > 60) reasons.push("price outside 2..60");
+  else score += 30 * band(c.close, 2, 60);
 
   if (c.avgDollarVolume < 5e6) reasons.push("dollar volume under 5M");
   else score += 40 * Math.min(1, c.avgDollarVolume / 5e8);

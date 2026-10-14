@@ -54,7 +54,7 @@ export async function api<T = ActionResult>(path: string, body?: unknown): Promi
 export const activate = (body: unknown) => api('/api/bracket/activate', body);
 export const deactivate = (reason: string) => api('/api/bracket/deactivate', { reason });
 export const setLevels = (body: unknown) => api('/api/bracket/levels', body);
-export const flatten = (symbol: string) => api('/api/bracket/flatten', { symbol });
+export const flatten = (symbol: string, offset?: number) => api('/api/bracket/flatten', { symbol, offset: offset ?? 0 });
 export const switchSymbol = (symbol: string) => api('/api/symbol', { symbol });
 export const getStatus = () => api<Status>('/status');
 export const getQuote = () => api<Quote>('/api/quote');

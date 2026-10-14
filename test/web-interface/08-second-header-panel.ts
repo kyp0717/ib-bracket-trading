@@ -19,16 +19,16 @@ try {
     const h = head.getBoundingClientRect();
     return {
       missing: false,
-      inSub: ['ch-otype', 'ch-size', 'ch-pos'].every((id) => !!sub.querySelector('#' + id)),
-      inHead: !!head.querySelector('#ch-otype, #ch-size, #ch-pos'),
+      inSub: ['ch-size', 'ch-pos'].every((id) => !!sub.querySelector('#' + id)),
+      inHead: !!head.querySelector('#ch-size, #ch-pos'),
       subLeft: s.left, chartRight: c.right,
       subRight: s.right, headRight: h.right,
       subTop: s.top, headBottom: h.bottom,
     };
   });
   if (m.missing || m.subLeft === undefined) throw new Error('no .ch-subhead element');
-  if (m.inSub && !m.inHead) pass('type, size, position, and reset live in the second header');
-  else fail('type, size, position, and reset live in the second header', `inSub=${m.inSub} inHead=${m.inHead}`);
+  if (m.inSub && !m.inHead) pass('size and position live in the second header');
+  else fail('size and position live in the second header', `inSub=${m.inSub} inHead=${m.inHead}`);
   if (Math.abs(m.subLeft - m.chartRight) < 3) pass('second header starts at the chart right border');
   else fail('second header starts at the chart right border', `subLeft=${m.subLeft} chartRight=${m.chartRight}`);
   if (Math.abs(m.subRight - m.headRight) < 3) pass('second header reaches the right edge with the main header');
