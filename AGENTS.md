@@ -104,16 +104,42 @@ ls-trader `TRADER_S3_BUCKET` variable is intentionally ignored here.
   extra `reconcile` lines in the audit trail during a run and do not treat
   them as failures by themselves.
 
+## IB endpoints, live vs paper
+
+| Program    | Live | Paper |
+|------------|------|-------|
+| IB Gateway | 4001 | 4002  |
+| TWS        | 7497 | 7500  |
+
+IB Gateway ports are the vendor defaults, confirmed on linden
+2026-10-14: 4001 answered as a real, live account; 4002 is paper. TWS
+ports on this setup were remapped on 2026-10-08 (vendor defaults are
+7496 live and 7497 paper; here 7497 is live and 7500 is paper, per the
+tradehub-go setup notes). An older line in this file called 7497 TWS
+paper; that predates the remap. Treat the TWS ports as unconfirmed
+until a paper login is tested on each machine.
+
+Two consequences to respect:
+- The app defaults to `--ibport 4001`, which is LIVE. Every paper run
+  must pass the paper port explicitly, and nothing under `test/` may
+  ever be pointed at 4001.
+- While the app points at a live account it places real orders on
+  activation, and the restart reconcile sweep cancels unadopted
+  standalone LMT/MKT orders it finds. Keep the app the only order path
+  on that account.
+
 ## Testing and validation
 
 - `run-all.sh` starts with the static gate: `tsc --noEmit` over the
   app and every test against the wire types in `wire.ts`. A type break
   fails in seconds, gateway closed, and no suite starts. Then each
   area runner runs in turn.
-- Paper endpoints only, both safe for destructive scenarios. 4001 is IB
-  Gateway paper, 7497 is TWS paper. On linden the IB Gateway paper port
-  is 4002 (see machine facts). Full suite:
-  `bash test/run-all.sh 7497` (linden: `bash test/run-all.sh 4002`).
+- Paper endpoints only, both safe for destructive scenarios: IB Gateway
+  paper is 4002 and TWS paper is 7500 on this setup (see "IB endpoints,
+  live vs paper" above; the TWS paper port is remapped and unconfirmed).
+  4001 is IB Gateway LIVE and must never host a test run or a scenario.
+  Full suite (regular hours only): `bash test/run-all.sh 4002` on
+  linden.
 - Run the full suite only while the regular session is open and aim to
   finish by 15:45 ET. Flatten uses a MKT order, and after the 16:00 ET
   close the gateway queues MKT orders for the next open while still
