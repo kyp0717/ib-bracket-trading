@@ -184,6 +184,20 @@ body {
   min-width: 0;
 }
 
+.ch-subhead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 1px 8px;
+  min-height: 26px;
+  border-bottom: 1px solid var(--border);
+}
+.ch-subhead .tc-reset {
+  width: auto;
+  margin: 0;
+  padding: 1px 8px;
+}
+
 .ch-side-cols {
   display: flex;
   flex: 0 0 75%;
@@ -410,10 +424,10 @@ body {
   letter-spacing: 0.05em;
   pointer-events: none;
 }
-.ch-ind { left: 48px; }
+.ch-ind { left: 130px; }
 .ch-ind .ind-v { color: #e8b23a; }
 .ch-ind .ind-e { color: #4fa3ff; }
-#ch-tf { position: absolute; top: 4px; right: 8px; z-index: 5; }
+#ch-tf { position: absolute; top: 4px; left: 8px; z-index: 5; }
 
 .tc-col {
   width: 96px;
@@ -515,26 +529,28 @@ button.tc-col-head.active {
       <input id="ch-input" placeholder="TICKER" autocomplete="off" maxlength="8">
       <button type="submit" id="ch-switch-btn">Switch</button>
     </form>
-    <span class="tc-size" id="ch-otype">
-      <span class="tc-size-label">TYPE:</span>
-      <button class="tc-size-btn active" data-ot="LMT" type="button">LMT</button>
-      <button class="tc-size-btn" data-ot="MKT" type="button">MKT</button>
-    </span>
-    <div class="tc-size" id="ch-size">
-      <span class="tc-size-label">SIZE:</span>
-      <button class="tc-size-btn active" data-qty="1" type="button">1</button>
-      <button class="tc-size-btn" data-qty="10" type="button">10</button>
-      <button class="tc-size-btn" data-qty="100" type="button">100</button>
-    </div>
-    <div class="tc-pos" id="ch-pos">
-      <span id="ch-pos-shares">POSITION: 0</span>
-      <span id="ch-pos-pl">PNL: $0.00</span>
-    </div>
-    <button class="tc-reset" id="ch-reset" type="button">RESET</button>
   </div>
   <div class="ch-panes">
-    <div class="tc-chart" id="ch-second"><span class="ch-tag" id="ch-tf-tag">10s</span><span class="ch-tag ch-ind" id="ch-ind-tag">VWAP <b class="ind-v" id="ch-ind-vwap"></b> EMA9 <b class="ind-e" id="ch-ind-ema9"></b></span><span class="tc-size" id="ch-tf"><button class="tc-size-btn active" data-tf="10s" type="button">10s</button><button class="tc-size-btn" data-tf="1m" type="button">1m</button><button class="tc-size-btn" data-tf="1d" type="button">1d</button></span></div>
+    <div class="tc-chart" id="ch-second"><span class="ch-tag ch-ind" id="ch-ind-tag">VWAP <b class="ind-v" id="ch-ind-vwap"></b> EMA9 <b class="ind-e" id="ch-ind-ema9"></b></span><span class="tc-size" id="ch-tf"><button class="tc-size-btn active" data-tf="10s" type="button">10s</button><button class="tc-size-btn" data-tf="1m" type="button">1m</button><button class="tc-size-btn" data-tf="1d" type="button">1d</button></span></div>
     <div class="ch-side">
+      <div class="ch-subhead">
+        <span class="tc-size" id="ch-otype">
+          <span class="tc-size-label">TYPE:</span>
+          <button class="tc-size-btn active" data-ot="LMT" type="button">LMT</button>
+          <button class="tc-size-btn" data-ot="MKT" type="button">MKT</button>
+        </span>
+        <div class="tc-size" id="ch-size">
+          <span class="tc-size-label">SIZE:</span>
+          <button class="tc-size-btn active" data-qty="1" type="button">1</button>
+          <button class="tc-size-btn" data-qty="10" type="button">10</button>
+          <button class="tc-size-btn" data-qty="100" type="button">100</button>
+        </div>
+        <div class="tc-pos" id="ch-pos">
+          <span id="ch-pos-shares">POSITION: 0</span>
+          <span id="ch-pos-pl">PNL: $0.00</span>
+        </div>
+        <button class="tc-reset" id="ch-reset" type="button">RESET</button>
+      </div>
       <div class="ch-side-cols">
         <div class="tc-col" id="ch-col">
           <button class="tc-col-head" id="ch-arm" type="button">BRACKET DISABLE</button>
@@ -973,7 +989,6 @@ const toVolume = (b) => ({ time: b.time, value: b.volume, color: b.close >= b.op
 
 function setCurrentTf(next){
   tf = next;
-  $('ch-tf-tag').textContent = tf;
   document.querySelectorAll('#ch-tf .tc-size-btn').forEach((b) => b.classList.toggle('active', b.dataset.tf === tf));
   const data = [...bars[tf].values()].sort((a, b) => a.time - b.time);
   candle.setData(data.map(toCandle));

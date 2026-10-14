@@ -21,13 +21,15 @@ try {
   else fail('tf buttons live inside the chart, not the header', `inChart=${m.inChart} inHead=${m.inHead}`);
   if (m.tfs.length === 3 && m.tfs.join(',') === '10s,1m,1d') pass('all three timeframe buttons present');
   else fail('all three timeframe buttons present', JSON.stringify(m.tfs));
+  const labelGone = await page.evaluate(() => document.getElementById('ch-tf-tag') === null);
+  if (labelGone) pass('chart label removed, active button is the indicator');
+  else fail('chart label removed, active button is the indicator', 'ch-tf-tag still exists');
 
   await page.click('#ch-tf .tc-size-btn[data-tf="1m"]');
   await page.waitForTimeout(300);
-  const tag = await page.$eval('#ch-tf-tag', (el) => el.textContent);
   const active = await page.$eval('#ch-tf .tc-size-btn.active', (el) => (el as HTMLElement).dataset.tf);
-  if (tag === '1m' && active === '1m') pass('clicking a moved button still switches the chart');
-  else fail('clicking a moved button still switches the chart', `tag=${tag} active=${active}`);
+  if (active === '1m') pass('clicking a moved button still switches the chart');
+  else fail('clicking a moved button still switches the chart', 'active=' + active);
 } catch (e) {
   await snap(page, import.meta.url, 'aborted');
   fail('suite aborted', String(e));
