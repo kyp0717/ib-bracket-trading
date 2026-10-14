@@ -12,6 +12,7 @@ export interface ActionResult {
 export interface Status extends ConnState {
   symbol: string;
   cancelInFlight: boolean;
+  position: number;
 }
 
 export interface Quote extends Trade {
@@ -137,6 +138,16 @@ export function acked(orderId: number): boolean {
 
 export async function waitAcked(orderIds: number[], ms = 20000): Promise<void> {
   await waitFor(`cancel acks for ${orderIds.join('/')}`, ms, () => orderIds.every(acked));
+}
+
+export async function flattenUntilFlat(symbol: string, ms = 90000): Promise<boolean> {
+  const t0 = Date.now();
+  while (Date.now() - t0 < ms) {
+    if ((await getStatus()).position === 0) return true;
+    await flatten(symbol);
+    await new Promise((r) => setTimeout(r, 2000));
+  }
+  return (await getStatus()).position === 0;
 }
 
 export const r2 = (x: number) => Math.round(x * 100) / 100;

@@ -55,6 +55,7 @@ export function beginReconcile(): void {
   reconcilePending = { openOrders: true, positions: true };
   reconcileParents.clear();
   reconcileOrphans.clear();
+  reconcileAdopted.clear();
   if (reconcileTimer) clearTimeout(reconcileTimer);
   reconcileTimer = setTimeout(finishReconcileIfDone, 5000);
   try {
@@ -77,6 +78,19 @@ function finishReconcileIfDone(): void {
     if (reconcileTimer) clearTimeout(reconcileTimer);
     reconcileTimer = null;
     audit("reconcile", "open orders and positions replayed, activations open");
+    for (const [parentId, orphans] of reconcileOrphans) {
+      for (const o of orphans) {
+        ibmod.cancel(o.orderId);
+        audit("reconcile-orphan-cancel", `${o.symbol}: child of missing parent ${parentId}, order ${o.orderId}`);
+      }
+    }
+    reconcileOrphans.clear();
+    for (const [orderId, parent] of reconcileParents) {
+      if (reconcileAdopted.has(orderId)) continue;
+      ibmod.cancel(orderId);
+      audit("reconcile-orphan-cancel", `${parent.symbol}: parent without live children, order ${orderId}`);
+    }
+    reconcileParents.clear();
     emit("exec", { t: "conn", ...ibmod.state });
     emit("exec", { t: "bracket", bracket: snapshot() });
   }
@@ -289,6 +303,22 @@ export function onOrderStatus(
   avgFillPrice: number,
   parentId: number
 ): void {
+  if (flattenOrder && orderId === flattenOrder.orderId) {
+    const sym = flattenOrder.symbol;
+    if (status === "Filled") {
+      positions.set(sym, 0);
+      audit("fill", `flatten order=${orderId} filled=${filled} avg=${avgFillPrice}`);
+      flattenOrder = undefined;
+    } else if (status === "Cancelled" || status === "Inactive" || status === "ApiCancelled") {
+      flattenOrder = undefined;
+      if (flattenWanted) {
+        const wanted = flattenWanted.symbol;
+        flattenWanted = undefined;
+        placeFlatten(wanted);
+      }
+    }
+    return;
+  }
   const hit = legIndex.get(orderId);
   if (!hit) return;
   const { br, leg } = hit;
@@ -305,6 +335,7 @@ export function onOrderStatus(
   if ((leg === "stop" || leg === "target") && status === "Filled" && br.state !== "closed") {
     positions.set(br.symbol, 0);
     br.state = "closed";
+    if (flattenOrder && flattenOrder.symbol === br.symbol) ibmod.cancel(flattenOrder.orderId);
   }
   if (status === "Filled") {
     audit("fill", `${br.symbol} ${leg} order=${orderId} filled=${filled} avg=${avgFillPrice}`);
@@ -318,6 +349,7 @@ export function onOrderStatus(
 
 const reconcileParents = new Map<number, any>();
 const reconcileOrphans = new Map<number, { orderId: number; symbol: string; order: any }[]>();
+const reconcileAdopted = new Set<number>();
 
 export function onOpenOrder(orderId: number, symbol: string, order: any): void {
   const known = legIndex.get(orderId);
@@ -348,6 +380,7 @@ export function onOpenOrder(orderId: number, symbol: string, order: any): void {
 function attachReconciledLeg(orderId: number, symbol: string, order: any): void {
   const parent = reconcileParents.get(order.parentId);
   if (!parent) return;
+  reconcileAdopted.add(order.parentId);
   let br = current;
   if (!br || br.state === "closed") {
     br = {
@@ -407,12 +440,18 @@ export function hasWorking(): boolean {
   return !!current && current.state !== "closed";
 }
 
-export function flatten(symbol: string): { ok: boolean; error?: string } {
+let flattenOrder: { orderId: number; symbol: string } | undefined;
+let flattenWanted: { symbol: string } | undefined;
+
+function placeFlatten(symbol: string): void {
   const pos = positions.get(symbol) ?? 0;
-  if (pos === 0) return { ok: false, error: `no position for ${symbol}` };
+  if (!pos) return;
   const book = bookSnapshot();
   const px = pos > 0 ? book.bids[0]?.price : book.asks[0]?.price;
-  if (!px) return { ok: false, error: `no ${pos > 0 ? "bid" : "ask"} on the book for ${symbol}, refusing blind flatten` };
+  if (!px) {
+    audit("flatten-refused", `${symbol}: no ${pos > 0 ? "bid" : "ask"} on the book`);
+    return;
+  }
   const orderId = ibmod.takeOrderIds(1);
   ibmod.place(ibmod.contractFor(symbol), {
     orderId,
@@ -424,8 +463,28 @@ export function flatten(symbol: string): { ok: boolean; error?: string } {
     transmit: true,
     outsideRth: true,
   });
+  flattenOrder = { orderId, symbol };
   audit("flatten", `${symbol}: ${pos > 0 ? "sell" : "buy"} ${Math.abs(pos)} at ${pos > 0 ? "bid" : "ask"} ${px} order ${orderId}`);
+}
+
+export function flatten(symbol: string): { ok: boolean; error?: string } {
+  const pos = positions.get(symbol) ?? 0;
+  if (pos === 0) return { ok: false, error: `no position for ${symbol}` };
+  const book = bookSnapshot();
+  const px = pos > 0 ? book.bids[0]?.price : book.asks[0]?.price;
+  if (!px) return { ok: false, error: `no ${pos > 0 ? "bid" : "ask"} on the book for ${symbol}, refusing blind flatten` };
+  if (flattenOrder) {
+    flattenWanted = { symbol };
+    ibmod.cancel(flattenOrder.orderId);
+    audit("flatten-reprice", `${symbol}: cancel ${flattenOrder.orderId} for reprice`);
+    return { ok: true };
+  }
+  placeFlatten(symbol);
   return { ok: true };
+}
+
+export function position(symbol: string): number {
+  return positions.get(symbol) ?? 0;
 }
 
 export function snapshot(): BracketSnapshot {

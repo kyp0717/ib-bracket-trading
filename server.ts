@@ -93,7 +93,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (req.method === "GET" && path === "/status") {
-      sendJson(res, 200, { ...ibmod.state, symbol: chart.getSymbol(), cancelInFlight: bracket.pending() });
+      sendJson(res, 200, { ...ibmod.state, symbol: chart.getSymbol(), cancelInFlight: bracket.pending(), position: bracket.position(chart.getSymbol()) });
       return;
     }
 

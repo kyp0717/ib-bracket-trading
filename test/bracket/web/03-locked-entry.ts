@@ -1,4 +1,4 @@
-import { makeSuite, live, waitFor, waitIdle, quote, r2, activate, deactivate, flatten } from '../../suite';
+import { makeSuite, live, waitFor, waitIdle, quote, r2, activate, deactivate, flatten, flattenUntilFlat } from '../../suite';
 import { guiPage, snap } from '../../web';
 
 const { pass, fail, summary } = makeSuite('web 03 locked entry');
@@ -44,6 +44,7 @@ try {
   }
 
   await flatten('SPY');
+  await flattenUntilFlat('SPY');
   await waitFor('deactivate accepted after flatten', 60000, async () => (await deactivate('cleanup')).ok);
   await waitIdle(st);
 } catch (e) {

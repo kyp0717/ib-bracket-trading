@@ -1,4 +1,4 @@
-import { makeSuite, live, waitFor, waitIdle, deactivate, flatten } from '../../suite';
+import { makeSuite, live, waitFor, waitIdle, deactivate, flatten, flattenUntilFlat } from '../../suite';
 
 const { pass, fail, summary } = makeSuite('api 09 deactivate filled');
 const { st, close } = live();
@@ -22,8 +22,12 @@ try {
   if (r2.ok) pass('flatten accepted');
   else fail('flatten accepted', JSON.stringify(r2));
 
-  await waitFor('deactivate accepted after flatten', 60000, async () => (await deactivate('scenario 9 flat')).ok);
-  pass('deactivate accepted once flat');
+  if (await flattenUntilFlat('SPY')) pass('broker position flat after flatten');
+  else fail('broker position flat after flatten', 'position still open after 90s of repricing');
+
+  const r3 = await deactivate('scenario 9 flat');
+  if (r3.ok) pass('deactivate accepted once flat');
+  else fail('deactivate accepted once flat', JSON.stringify(r3));
   await waitFor('children cancelled', 20000, () => {
     const b = st.bracket;
     const dead = (s: string) => s === 'Cancelled' || s === 'Inactive' || s === 'ApiCancelled';
