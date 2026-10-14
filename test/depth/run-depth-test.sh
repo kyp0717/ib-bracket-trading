@@ -60,20 +60,15 @@ wait_app
 doctor
 echo "health check ok"
 
-echo "== api scenarios =="
-run_files test/depth/api/*.ts
+echo "== scenarios =="
+run_files test/depth/[0-9]*.ts
 p1=$?
-
-echo "== gui scenarios =="
-run_files test/depth/web/*.ts
-p2=$?
 
 pkill -f "server[.]ts" 2>/dev/null
 
 echo "== summary =="
-[ $p1 -eq 0 ] && echo "api: pass" || echo "api: FAIL"
-[ $p2 -eq 0 ] && echo "gui: pass" || echo "gui: FAIL"
-if [ $p1 -ne 0 ] || [ $p2 -ne 0 ]; then
+[ $p1 -eq 0 ] && echo "scenarios: pass" || echo "scenarios: FAIL"
+if [ $p1 -ne 0 ]; then
   save_evidence
 fi
-[ $p1 -eq 0 ] && [ $p2 -eq 0 ]
+[ $p1 -eq 0 ]

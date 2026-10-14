@@ -147,12 +147,20 @@ Two consequences to respect:
   survives, which turns later scenarios red in confusing ways. See
   resource/lessons/20261013-market-orders-are-limit-only-outside-regular-hours.md.
 - Each test area lives in its own folder under `test/`:
-  `initialization/`, `bracket/`, `depth/`, `ticks/`, `order-at-server/`, `scanner/`,
-  `health-check/`.
-  Shared helpers live at the test root:
+  `initialization/`, `bracket/`, `depth/`, `ticks/`, `order-at-server/`,
+  `scanner/`, `web-interface/`, `health-check/`. Areas hold their
+  scenarios as flat numbered files directly in the folder; no `api/`
+  phase folder. Two subfolders remain because the runner treats them
+  specially: `bracket/reconnect/` (runs after the runner restarts the
+  app) and `bracket/web/` (behavior scenarios that drive the bracket
+  state machine through the browser and chain with the flat bracket
+  scenarios). Everything that proves presentation, layout, styling, and
+  rendering, whatever area feeds it, lives in `web-interface/`.
+  Shared helpers live in `test/util/`:
   `suite.ts` (pass/fail, waits, SSE state, typed API helpers, evidence
-  paths), `web.ts` (browser setup and screenshots), and `sse.ts`
-  (EventSource replacement). All test code is TypeScript; scenarios
+  paths), `web.ts` (browser setup and screenshots), `sse.ts`
+  (EventSource replacement), and `ib-probe.ts` (independent IB client
+  for server-side checks). All test code is TypeScript; scenarios
   run through `tsx`, and the static gate type-checks them on every run.
 - GUI testing uses Playwright, through the `playwright-core`
   devDependency in `web.ts`. Every GUI behavior (modals, buttons,
@@ -167,13 +175,11 @@ Two consequences to respect:
   One proof without the other is not done: data without the visual
   check can render wrong and pass, and a visual check without the
   data check cannot say whether the app or the rendering lied.
-- Scenarios are one file each inside phase folders: `api/` (HTTP + SSE
-  data checks), `web/` (Playwright browser checks), `reconnect/`
-  (bracket only, runs after the runner restarts the app). One story per
-  file: a scenario proves exactly one behavior and the file name says
-  which. File names start with a number to fix execution order within a
-  phase, because scenarios chain when one leaves live state for the
-  next. The runner
+- Scenarios are one numbered file per story, flat inside the area:
+  `test/<area>/<nn>-<story>.ts`. One story per file: a scenario proves
+  exactly one behavior and the file name says which. Numbers fix
+  execution order, because scenarios chain when one leaves live state
+  for the next. The runner
   loops every scenario file and keeps going after a failure, so one red
   scenario never hides the rest. A scenario exits nonzero on any failed
   check.
@@ -194,10 +200,13 @@ Two consequences to respect:
   "Shared S3 store"). Every
   artifact is named after the test that produced it, so a filename is
   all you need to trace back. Screenshots:
-  `test/<area>/<phase>/<nn>-<story>.ts` produces
-  `<area>-<phase>-<nn>-<story>-<what>.png`, generated automatically
-  from the scenario file path. Example:
-  `test/bracket/web/03-locked-entry.ts` on abort writes
+  `test/<area>/<path>/<nn>-<story>.ts` produces
+  `<area>-<path>-<nn>-<story>-<what>.png`, generated automatically
+  from the scenario file path, where `<path>` is empty for flat area
+  scenarios. Example:
+  `test/web-interface/03-size-defaults-to-one.ts` on abort writes
+  `evidence/<host>/web-interface-03-size-defaults-to-one-aborted.png`,
+  and `test/bracket/web/03-locked-entry.ts` writes
   `evidence/<host>/bracket-web-03-locked-entry-aborted.png`. App logs:
   `<area>-app-<timestamp>.log` from the runner. To diagnose a red
   scenario, pull its evidence object from S3 first.

@@ -61,7 +61,7 @@ doctor
 echo "health check ok"
 
 echo "== api scenarios =="
-run_files test/bracket/api/*.ts
+run_files test/bracket/[0-9]*.ts
 p1=$?
 
 echo "== restart for reconnect scenario =="

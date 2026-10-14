@@ -413,6 +413,7 @@ body {
 .ch-ind { left: 48px; }
 .ch-ind .ind-v { color: #e8b23a; }
 .ch-ind .ind-e { color: #4fa3ff; }
+#ch-tf { position: absolute; top: 4px; right: 8px; z-index: 5; }
 
 .tc-col {
   width: 96px;
@@ -514,12 +515,6 @@ button.tc-col-head.active {
       <input id="ch-input" placeholder="TICKER" autocomplete="off" maxlength="8">
       <button type="submit" id="ch-switch-btn">Switch</button>
     </form>
-    <span class="tc-size" id="ch-tf">
-      <span class="tc-size-label">TF:</span>
-      <button class="tc-size-btn active" data-tf="10s" type="button">10s</button>
-      <button class="tc-size-btn" data-tf="1m" type="button">1m</button>
-      <button class="tc-size-btn" data-tf="1d" type="button">1d</button>
-    </span>
     <span class="tc-size" id="ch-otype">
       <span class="tc-size-label">TYPE:</span>
       <button class="tc-size-btn active" data-ot="LMT" type="button">LMT</button>
@@ -538,7 +533,7 @@ button.tc-col-head.active {
     <button class="tc-reset" id="ch-reset" type="button">RESET</button>
   </div>
   <div class="ch-panes">
-    <div class="tc-chart" id="ch-second"><span class="ch-tag" id="ch-tf-tag">10s</span><span class="ch-tag ch-ind" id="ch-ind-tag">VWAP <b class="ind-v" id="ch-ind-vwap"></b> EMA9 <b class="ind-e" id="ch-ind-ema9"></b></span></div>
+    <div class="tc-chart" id="ch-second"><span class="ch-tag" id="ch-tf-tag">10s</span><span class="ch-tag ch-ind" id="ch-ind-tag">VWAP <b class="ind-v" id="ch-ind-vwap"></b> EMA9 <b class="ind-e" id="ch-ind-ema9"></b></span><span class="tc-size" id="ch-tf"><button class="tc-size-btn active" data-tf="10s" type="button">10s</button><button class="tc-size-btn" data-tf="1m" type="button">1m</button><button class="tc-size-btn" data-tf="1d" type="button">1d</button></span></div>
     <div class="ch-side">
       <div class="ch-side-cols">
         <div class="tc-col" id="ch-col">

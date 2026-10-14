@@ -38,10 +38,18 @@ t=$?
 bash test/order-at-server/run-order-at-server-test.sh "$PORT"
 o=$?
 
+bash test/scanner/run-scanner-test.sh "$PORT"
+sc=$?
+
+bash test/web-interface/run-web-interface-test.sh "$PORT"
+wi=$?
+
 echo "== overall =="
 [ $i -eq 0 ] && echo "initialization: pass" || echo "initialization: FAIL"
 [ $b -eq 0 ] && echo "bracket: pass" || echo "bracket: FAIL"
 [ $d -eq 0 ] && echo "depth: pass" || echo "depth: FAIL"
 [ $t -eq 0 ] && echo "ticks: pass" || echo "ticks: FAIL"
 [ $o -eq 0 ] && echo "order-at-server: pass" || echo "order-at-server: FAIL"
-[ $i -eq 0 ] && [ $b -eq 0 ] && [ $d -eq 0 ] && [ $t -eq 0 ] && [ $o -eq 0 ]
+[ $sc -eq 0 ] && echo "scanner: pass" || echo "scanner: FAIL"
+[ $wi -eq 0 ] && echo "web-interface: pass" || echo "web-interface: FAIL"
+[ $i -eq 0 ] && [ $b -eq 0 ] && [ $d -eq 0 ] && [ $t -eq 0 ] && [ $o -eq 0 ] && [ $sc -eq 0 ] && [ $wi -eq 0 ]
