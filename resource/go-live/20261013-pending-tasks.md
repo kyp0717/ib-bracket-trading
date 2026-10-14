@@ -21,7 +21,10 @@ land, and move finished items to the bottom under Done with the date.
 3. **Full suite not green since the fixes.** Reconnect rebuild and
    tick-by-tick cadence are each proven in isolation, never in one run.
    First action in regular hours: `bash test/run-all.sh 4002` between
-   09:30 and 15:45 ET. Status: open, scheduled 2026-10-14 at 09:30 ET.
+   09:30 and 15:45 ET. Status: green in one premarket run on
+   2026-10-14 (only the cadence threshold was wrong, fixed to prove
+   sub-250ms inter-arrivals instead of an RTH print count). A
+   confirming RTH run is still worth doing.
 4. **No sustained paper observation.** One week of regular-hours paper
    runs, flat and clean at the end of each day, before real money.
    Status: open, starts after item 3.

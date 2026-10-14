@@ -78,12 +78,13 @@ export interface LiveState {
   depth: DepthBook | null;
   depthMsgs: number;
   tapeMsgs: number;
+  tapeTimes: number[];
   auditLines: string[];
   symbol: string;
 }
 
 export function live(): { st: LiveState; close(): void } {
-  const st: LiveState = { reconciled: false, cancelInFlight: false, bracket: null, depth: null, depthMsgs: 0, tapeMsgs: 0, auditLines: [], symbol: '' };
+  const st: LiveState = { reconciled: false, cancelInFlight: false, bracket: null, depth: null, depthMsgs: 0, tapeMsgs: 0, tapeTimes: [], auditLines: [], symbol: '' };
   const onmsg = (e: { data: string }) => {
     const m = JSON.parse(e.data) as SseMsg;
     if (m.t === 'conn') st.reconciled = m.reconciled;
@@ -95,7 +96,11 @@ export function live(): { st: LiveState; close(): void } {
       st.depth = m.book;
       st.depthMsgs++;
     }
-    if (m.t === 'tape') st.tapeMsgs++;
+    if (m.t === 'tape') {
+      st.tapeMsgs++;
+      st.tapeTimes.push(Date.now());
+      if (st.tapeTimes.length > 600) st.tapeTimes.shift();
+    }
     if (m.t === 'audit') st.auditLines.push(m.line);
   };
   const es = new EventSource(APP + '/events');
