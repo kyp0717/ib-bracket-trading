@@ -19,8 +19,8 @@ try {
     const h = head.getBoundingClientRect();
     return {
       missing: false,
-      inSub: ['ch-otype', 'ch-size', 'ch-pos', 'ch-reset'].every((id) => !!sub.querySelector('#' + id)),
-      inHead: !!head.querySelector('#ch-otype, #ch-size, #ch-pos, #ch-reset'),
+      inSub: ['ch-otype', 'ch-size', 'ch-pos'].every((id) => !!sub.querySelector('#' + id)),
+      inHead: !!head.querySelector('#ch-otype, #ch-size, #ch-pos'),
       subLeft: s.left, chartRight: c.right,
       subRight: s.right, headRight: h.right,
       subTop: s.top, headBottom: h.bottom,

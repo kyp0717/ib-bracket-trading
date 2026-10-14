@@ -125,7 +125,11 @@ body {
 .ch-switch {
   display: flex;
   gap: 5px;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
 }
+#conn-pill { margin-left: auto; }
 
 .ch-switch input {
   width: 8em;
@@ -523,9 +527,8 @@ button.tc-col-head.active {
 <div class="charts-wrap">
   <div class="ch-head">
     <span class="ch-sym" id="ch-sym">SPY</span>
-    <span class="pill" id="conn-pill"><span class="dot wait" id="conn-dot"></span><span id="conn-text">connecting</span></span>
-    <span class="pill" id="ch-switch-pill" style="display:none"><span class="dot wait" id="ch-switch-dot"></span><span id="ch-switch-text"></span></span>
     <span class="td-feedback" id="ch-feedback"></span>
+    <span class="pill" id="conn-pill"><span class="dot wait" id="conn-dot"></span><span id="conn-text">connecting</span></span>
     <form class="ch-switch" id="ch-form">
       <input id="ch-input" placeholder="TICKER" autocomplete="off" maxlength="8">
       <button type="submit" id="ch-switch-btn">Switch</button>
@@ -550,7 +553,6 @@ button.tc-col-head.active {
           <span id="ch-pos-shares">POSITION: 0</span>
           <span id="ch-pos-pl">PNL: $0.00</span>
         </div>
-        <button class="tc-reset" id="ch-reset" type="button">RESET</button>
       </div>
       <div class="ch-side-cols">
         <div class="tc-col" id="ch-col">
@@ -1128,32 +1130,13 @@ function renderDepth(){
   }
 }
 
-let switchSlowTimer = null;
-let switchHideTimer = null;
 function showSwitching(sym){
-  const pill = $('ch-switch-pill');
-  pill.style.display = 'inline-flex';
-  $('ch-switch-dot').className = 'dot wait';
-  $('ch-switch-text').textContent = 'Switching to ' + sym + '…';
   $('ch-second').appendChild(loadingEl);
   loadingEl.textContent = 'Loading ' + sym + '…';
   loadingEl.style.display = 'flex';
-  if (switchSlowTimer) clearTimeout(switchSlowTimer);
-  if (switchHideTimer) clearTimeout(switchHideTimer);
-  switchSlowTimer = setTimeout(() => {
-    if ($('ch-switch-dot').className !== 'dot wait') return;
-    $('ch-switch-dot').className = 'dot down';
-    $('ch-switch-text').textContent = 'Feed slow, retrying';
-  }, 30000);
 }
 function markArrived(){
-  if ($('ch-switch-pill').style.display === 'none') return;
   loadingEl.style.display = 'none';
-  if (switchSlowTimer) { clearTimeout(switchSlowTimer); switchSlowTimer = null; }
-  $('ch-switch-dot').className = 'dot up';
-  $('ch-switch-text').textContent = 'Streaming ' + symbol;
-  if (switchHideTimer) clearTimeout(switchHideTimer);
-  switchHideTimer = setTimeout(() => { $('ch-switch-pill').style.display = 'none'; }, 4000);
 }
 const loadingEl = document.createElement('div');
 loadingEl.className = 'tc-loading';
@@ -1234,7 +1217,7 @@ function readServerLevels(){
 
 function renderArm(){
   const b = $('ch-arm');
-  b.textContent = bracketActive ? 'BRACKET ENABLE' : 'BRACKET DISABLE';
+  b.textContent = bracketActive ? 'ENABLE' : 'DISABLE';
   b.classList.toggle('active', bracketActive);
   b.disabled = cancelInFlight;
 }
@@ -1313,24 +1296,6 @@ $('ch-tf').addEventListener('click', (ev) => {
   if (!btn || btn.dataset.tf === tf) return;
   setCurrentTf(btn.dataset.tf);
 });
-$('ch-reset').addEventListener('click', () => {
-  if (bracketActive) {
-    $('ch-feedback').textContent = 'bracket working, deactivate first';
-    return;
-  }
-  if (!lastPrice || lastPrice <= 0) {
-    $('ch-feedback').textContent = 'no quote';
-    return;
-  }
-  delete defaults[symbol];
-  levels = defaultLevels(lastPrice);
-  needsPriceFit = true;
-  renderLevels();
-  renderArm();
-  if (fitPriceScale()) needsPriceFit = false;
-  $('ch-feedback').textContent = 'bracket reset';
-});
-
 const es = new EventSource('/events');
 const mkt = new EventSource('/market');
 es.onmessage = onSse;
