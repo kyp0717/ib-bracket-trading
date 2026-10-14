@@ -36,6 +36,14 @@ try {
   if (m.subTop >= m.headBottom - 1) pass('second header sits directly below the main header');
   else fail('second header sits directly below the main header', `subTop=${m.subTop} headBottom=${m.headBottom}`);
 
+  const pos = await page.evaluate(() => {
+    const a = document.getElementById('ch-pos-shares')!.getBoundingClientRect();
+    const b = document.getElementById('ch-pos-pl')!.getBoundingClientRect();
+    return { topA: a.top, topB: b.top, leftA: a.left, leftB: b.left };
+  });
+  if (Math.abs(pos.topA - pos.topB) < 2 && pos.leftB > pos.leftA) pass('position and pnl sit side by side');
+  else fail('position and pnl sit side by side', JSON.stringify(pos));
+
   await snap(page, import.meta.url, 'layout');
   pass('layout screenshot recorded as evidence');
 } catch (e) {
