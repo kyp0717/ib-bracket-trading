@@ -24,5 +24,16 @@ export async function guiPage(symbol: string) {
 
 export async function snap(page: Page, metaUrl: string, name: string): Promise<void> {
   const { evidencePath } = await import('./suite');
-  await page.screenshot({ path: evidencePath(metaUrl, name) });
+  const { upload, evidenceKey } = await import('../../src/s3');
+  const local = evidencePath(metaUrl, name);
+  const buf = await page.screenshot();
+  const uri = await upload(evidenceKey(local), buf);
+  if (uri) console.log('EVIDENCE ' + uri);
+  else {
+    const { writeFileSync, mkdirSync } = await import('node:fs');
+    const { dirname } = await import('node:path');
+    mkdirSync(dirname(local), { recursive: true });
+    writeFileSync(local, buf);
+    console.log('EVIDENCE local ' + local);
+  }
 }

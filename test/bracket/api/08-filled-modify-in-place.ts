@@ -1,4 +1,4 @@
-import { makeSuite, live, waitFor, r2, setLevels } from '../../suite';
+import { makeSuite, live, waitFor, r2, setLevels } from '../../util/suite';
 
 const { pass, fail, summary } = makeSuite('api 08 filled modify in place');
 const { st, close } = live();

@@ -1,4 +1,4 @@
-import { makeSuite, live, waitFor, waitIdle, deactivate, flatten, flattenUntilFlat } from '../../suite';
+import { makeSuite, live, waitFor, waitIdle, deactivate, flatten, flattenUntilFlat } from '../../util/suite';
 
 const { pass, fail, summary } = makeSuite('api 09 deactivate filled');
 const { st, close } = live();

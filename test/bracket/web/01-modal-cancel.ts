@@ -1,5 +1,5 @@
-import { makeSuite, live, waitIdle, deactivate } from '../../suite';
-import { guiPage, snap } from '../../web';
+import { makeSuite, live, waitIdle, deactivate } from '../../util/suite';
+import { guiPage, snap } from '../../util/web';
 
 const { pass, fail, summary } = makeSuite('web 01 modal cancel');
 const { st, close } = live();

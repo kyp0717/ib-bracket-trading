@@ -1,5 +1,5 @@
-import { makeSuite, live, waitFor } from '../../suite';
-import { guiPage, snap } from '../../web';
+import { makeSuite, live, waitFor } from '../../util/suite';
+import { guiPage, snap } from '../../util/web';
 
 const { pass, fail, summary } = makeSuite('web 02 values colors mm');
 const { st, close } = live();

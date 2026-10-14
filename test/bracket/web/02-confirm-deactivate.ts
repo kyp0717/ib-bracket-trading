@@ -1,5 +1,5 @@
-import { makeSuite, live, waitFor, waitIdle, deactivate } from '../../suite';
-import { guiPage, snap } from '../../web';
+import { makeSuite, live, waitFor, waitIdle, deactivate } from '../../util/suite';
+import { guiPage, snap } from '../../util/web';
 
 const { pass, fail, summary } = makeSuite('web 02 confirm and deactivate');
 const { st, close } = live();

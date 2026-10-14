@@ -1,6 +1,6 @@
-import { makeSuite, live, waitFor, quote } from '../../suite';
-import type { Bar } from '../../../wire';
-import { guiPage, snap } from '../../web';
+import { makeSuite, live, waitFor, quote } from '../../util/suite';
+import type { Bar } from '../../../src/wire';
+import { guiPage, snap } from '../../util/web';
 
 const { pass, fail, summary } = makeSuite('web 06 indicators on one minute');
 const { st, close } = live();

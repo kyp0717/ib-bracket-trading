@@ -1,4 +1,4 @@
-import { makeSuite, live, waitFor, quote, r2, activate } from '../../suite';
+import { makeSuite, live, waitFor, quote, r2, activate } from '../../util/suite';
 
 const { pass, fail, summary } = makeSuite('api 02 enforce single order');
 const { st, close } = live();

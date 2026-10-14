@@ -1,4 +1,4 @@
-import { makeSuite, live, waitFor, quote } from '../../suite';
+import { makeSuite, live, waitFor, quote } from '../../util/suite';
 
 const { pass, fail, summary } = makeSuite('ticks 02 tick by tick cadence');
 const { st, close } = live();

@@ -1,6 +1,6 @@
 import { readFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import type { AuditRecent, Bar, Bracket, BracketSnapshot, ConnState, DepthBook, Trade } from '../wire';
+import type { AuditRecent, Bar, Bracket, BracketSnapshot, ConnState, DepthBook, Trade } from '../../src/wire';
 
 export const APP = process.env.E2E_APP_ADDR || 'http://127.0.0.1:8080';
 

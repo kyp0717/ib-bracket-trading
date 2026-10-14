@@ -1,4 +1,4 @@
-import { makeSuite, live, waitFor, quote } from '../../suite';
+import { makeSuite, live, waitFor, quote } from '../../util/suite';
 
 const { pass, fail, summary } = makeSuite('api 03 messages flow');
 const { st, close } = live();

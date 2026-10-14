@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import ts from 'typescript';
-import { makeSuite } from '../../suite';
+import { makeSuite } from '../../util/suite';
 
 const { pass, fail, summary } = makeSuite('ticks 00 tape source is tick by tick');
 const root = join(dirname(fileURLToPath(import.meta.url)), '../../..');
@@ -29,8 +29,8 @@ function callsOf(file: string): Call[] {
   return found;
 }
 
-const chartCalls = callsOf('chart.ts');
-const ibCalls = callsOf('ib.ts');
+const chartCalls = callsOf('src/chart.ts');
+const ibCalls = callsOf('src/ib.ts');
 const allCalls = [...chartCalls, ...ibCalls];
 
 if (chartCalls.some((c) => c.name === 'reqTickByTickData' && /TickByTickDataType\.AllLast/.test(c.args[2] ?? '')))

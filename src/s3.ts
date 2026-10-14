@@ -8,11 +8,11 @@ export function host(): string {
 }
 
 export function bucket(): string {
-  return process.env.TRADER_S3_BUCKET ?? "amzn-s3-trading-audit";
+  return process.env.BRACKET_S3_BUCKET ?? "amzn-s3-trading-audit";
 }
 
 function region(): string {
-  return process.env.TRADER_S3_REGION ?? "us-east-1";
+  return process.env.BRACKET_S3_REGION ?? process.env.TRADER_S3_REGION ?? "us-east-1";
 }
 
 function creds(): { key: string; secret: string } | undefined {
@@ -61,6 +61,7 @@ export function uploadSync(key: string, body: Buffer | string): void {
   if (!c) return;
   const out = spawnSync("aws", ["s3", "cp", "-", uri(key), "--region", region()], {
     input: body,
+    timeout: 5000,
     env: { ...process.env, AWS_ACCESS_KEY_ID: c.key, AWS_SECRET_ACCESS_KEY: c.secret, AWS_DEFAULT_REGION: region() },
     encoding: "buffer",
   });

@@ -1,4 +1,4 @@
-import { makeSuite, live, waitFor, quote, waitIdle, r2, activate, deactivate } from '../../suite';
+import { makeSuite, live, waitFor, quote, waitIdle, r2, activate, deactivate } from '../../util/suite';
 
 const { pass, fail, summary } = makeSuite('api 10 cross symbol');
 const { st, close } = live();

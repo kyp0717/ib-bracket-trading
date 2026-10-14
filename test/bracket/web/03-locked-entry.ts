@@ -1,5 +1,5 @@
-import { makeSuite, live, waitFor, waitIdle, quote, r2, activate, deactivate, flatten, flattenUntilFlat } from '../../suite';
-import { guiPage, snap } from '../../web';
+import { makeSuite, live, waitFor, waitIdle, quote, r2, activate, deactivate, flatten, flattenUntilFlat } from '../../util/suite';
+import { guiPage, snap } from '../../util/web';
 
 const { pass, fail, summary } = makeSuite('web 03 locked entry');
 const { st, close } = live();

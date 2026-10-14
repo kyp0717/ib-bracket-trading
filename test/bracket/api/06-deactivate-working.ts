@@ -1,4 +1,4 @@
-import { makeSuite, live, waitFor, waitAcked, waitIdle, deactivate } from '../../suite';
+import { makeSuite, live, waitFor, waitAcked, waitIdle, deactivate } from '../../util/suite';
 
 const { pass, fail, summary } = makeSuite('api 04 deactivate working');
 const { st, close } = live();

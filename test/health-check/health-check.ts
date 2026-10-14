@@ -1,6 +1,6 @@
 import { connect } from 'node:net';
-import { getStatus } from '../suite';
-import type { Status } from '../suite';
+import { getStatus } from '../util/suite';
+import type { Status } from '../util/suite';
 
 const IB_PORT = Number(process.argv[2] || 4001);
 

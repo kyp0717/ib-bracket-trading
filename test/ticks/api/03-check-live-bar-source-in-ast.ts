@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import ts from 'typescript';
-import { makeSuite } from '../../suite';
+import { makeSuite } from '../../util/suite';
 
 const { pass, fail, summary } = makeSuite('ticks 03 live bar source in ast');
 const root = join(dirname(fileURLToPath(import.meta.url)), '../../..');
@@ -29,8 +29,8 @@ function callsOf(file: string): Call[] {
   return found;
 }
 
-const chartCalls = callsOf('chart.ts');
-const ibCalls = callsOf('ib.ts');
+const chartCalls = callsOf('src/chart.ts');
+const ibCalls = callsOf('src/ib.ts');
 
 if (!chartCalls.some((c) => c.name === 'reqRealTimeBars'))
   pass('chart.ts builds no bar from the 5s realtime feed');

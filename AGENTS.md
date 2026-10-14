@@ -24,9 +24,9 @@ this app is built:
   one-line definition next to it.
 
 How the app is put together, in pipeline terms the developer already
-knows:
+knows (app modules live in `src/`, shared test helpers in `test/util/`):
 
-- `server.ts` is the intake. It serves one static page and a handful of
+- `src/server.ts` is the intake. It serves one static page and a handful of
   POST endpoints. Each endpoint calls straight into the state modules.
   No framework.
 - `bracket.ts` is the order state machine. The only owner of bracket
@@ -63,12 +63,36 @@ work must transfer cleanly between them (copied from
   tracked files.** Render them at setup time.
 - **Per-machine state stays out of git** and must have documented
   recreate steps. For this repo that means: IB Gateway / TWS login
-  state, `audit.log`, `node_modules`, and any local paper-account
-  positions left over from test runs.
+  state, `node_modules`, and any local paper-account positions left
+  over from test runs. Audits and evidence no longer live on either
+  machine; they live in S3 (see "Shared S3 store" below).
 - When a machine-specific fact comes up for this project (a port that
   only listens on one host, a different IB port number, a different
   checkout path), record it in this file under "Machine-specific facts"
   below so the other machine knows.
+
+## Shared S3 store
+
+Audits and evidence follow the operator between machines. Bucket
+`amzn-s3-trading-audit`, keys prefixed by the short hostname
+(`os.hostname()`), never hardcoded:
+
+- Audit trail: `audit/<host>/<YYYY-MM-DD>/chunk-<epoch>-<n>.log`,
+  written by `log.ts` in 2 second flushes (sync flush on SIGTERM/SIGINT).
+  The app keeps only an in-memory ring of the last 2000 lines, served
+  at `GET /api/audit` for tests and debugging.
+- Evidence: `evidence/<host>/<area>-<phase>-<nn>-<story>-<what>.png`
+  for screenshots (same names as before) and
+  `evidence/<host>/<area>-app-<timestamp>.log` for runner app logs.
+  Missing credentials fall back to `test/evidence/` locally and say so
+  in the console, so evidence is never lost.
+
+Recreate steps on each machine: AWS CLI v2 (ls-trader installs it at
+`~/.local/bin/aws`), then export `TRADER_S3_ACCESS_KEY` and
+`TRADER_S3_SECRET_KEY` (copied from `ls-trader/.env`) plus optionally
+`TRADER_S3_REGION` before starting the app or the suite. The bucket
+name is fixed in `s3.ts` (`BRACKET_S3_BUCKET` overrides it); the
+ls-trader `TRADER_S3_BUCKET` variable is intentionally ignored here.
 
 ## Machine-specific facts
 
@@ -77,7 +101,7 @@ work must transfer cleanly between them (copied from
   destructive scenarios. Run the suite here as `bash test/run-all.sh 4002`.
 - linden: the IB Gateway paper socket drops occasionally mid-run (a few
   times per hour). The app reconnects and reconciles on its own; expect
-  extra `reconcile` lines in audit.log during a run and do not treat
+  extra `reconcile` lines in the audit trail during a run and do not treat
   them as failures by themselves.
 
 ## Testing and validation
@@ -139,17 +163,23 @@ work must transfer cleanly between them (copied from
   port is open, the app answers HTTP, and the app is connected and
   reconciled before any scenario runs. If the doctor fails, nothing
   starts.
-- Evidence lives in one folder, `test/evidence/` (gitignored, created
-  on first failure). Every
+- Evidence lives in the S3 bucket under `evidence/<host>/` (see
+  "Shared S3 store"). Every
   artifact is named after the test that produced it, so a filename is
   all you need to trace back. Screenshots:
   `test/<area>/<phase>/<nn>-<story>.ts` produces
   `<area>-<phase>-<nn>-<story>-<what>.png`, generated automatically
   from the scenario file path. Example:
   `test/bracket/web/03-locked-entry.ts` on abort writes
-  `test/evidence/bracket-web-03-locked-entry-aborted.png`. App logs:
+  `evidence/<host>/bracket-web-03-locked-entry-aborted.png`. App logs:
   `<area>-app-<timestamp>.log` from the runner. To diagnose a red
-  scenario, read its evidence file first.
+  scenario, pull its evidence object from S3 first.
+- Every issue found in a run, especially edge cases, gets a lesson
+  file in `resource/lessons/` named `YYYYMMDD-topic.md` before the
+  work is committed: what was seen, why it happened, the fix, and the
+  rule that falls out of it. A red scenario without a lesson is not
+  finished. Design decisions no scenario can express go into
+  AGENTS.md, not into code comments.
 - To add a scenario: copy a sibling scenario into the right phase
   folder with the next number, name the file after what it proves, and
   follow the check pattern: one story per file, every assertion is one
@@ -161,7 +191,7 @@ work must transfer cleanly between them (copied from
 
 ## Speed rules
 
-- `npm install && npx tsx server.ts` must run the app. Nothing else
+- `npm install && npx tsx src/server.ts` must run the app. Nothing else
 - Every iteration is edit, restart, click activate. Target under ten
   seconds round trip
 - A new dependency needs one sentence of justification in the commit
@@ -218,7 +248,7 @@ work must transfer cleanly between them (copied from
 - Cancellations always pass. Cancel is the escape hatch and must never
   be blocked.
 - Every place, cancel, modify, reject, and fill lands in the
-  append-only `audit.log`.
+  append-only S3 audit trail (`audit/<host>/<date>/chunk-*.log`).
 - Wire types live in `wire.ts`. Every payload that crosses an SSE
   stream or an HTTP response is declared there, the app compiles
   against them, and `npx tsc --noEmit` (the first step of

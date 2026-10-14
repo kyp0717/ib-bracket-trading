@@ -1,5 +1,5 @@
-import { makeSuite } from '../../suite';
-import { guiPage } from '../../web';
+import { makeSuite } from '../../util/suite';
+import { guiPage } from '../../util/web';
 
 const { pass, fail, summary } = makeSuite('web 05 size defaults to one');
 const { browser, page } = await guiPage('SPY');

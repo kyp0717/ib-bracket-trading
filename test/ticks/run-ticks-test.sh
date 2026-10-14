@@ -9,9 +9,10 @@ LOG=/tmp/ticks-e2e.log
 export E2E_APP_ADDR="${E2E_APP_ADDR:-http://127.0.0.1:8080}"
 
 start_app() {
-  pkill -f "tsx server.ts" 2>/dev/null
+  pkill -f "server[.]ts" 2>/dev/null
   sleep 1
-  setsid nohup npx tsx server.ts --ibport "$IB_PORT" > "$LOG" 2>&1 < /dev/null &
+  for _ in $(seq 1 20); do ss -tln 2>/dev/null | grep -q ":8080 " && sleep 0.5 || break; done
+  setsid nohup npx tsx src/server.ts --ibport "$IB_PORT" > "$LOG" 2>&1 < /dev/null &
 }
 
 wait_app() {
@@ -28,7 +29,7 @@ wait_app() {
 doctor() {
   if ! npx tsx test/health-check/health-check.ts "$IB_PORT"; then
     echo "health check failed, suites not run"
-    pkill -f "tsx server.ts" 2>/dev/null
+    pkill -f "server[.]ts" 2>/dev/null
     exit 1
   fi
 }
@@ -47,7 +48,9 @@ run_files() {
 
 save_evidence() {
   mkdir -p "$EV"
-  cp "$LOG" "$EV/ticks-app-$(date +%Y%m%d-%H%M%S).log"
+  local f="$EV/ticks-app-$(date +%Y%m%d-%H%M%S).log"
+  cp "$LOG" "$f"
+  npx tsx test/aws-s3/upload-evidence.ts "$f" 2>/dev/null || true
   echo "evidence saved under $EV"
 }
 
@@ -61,7 +64,7 @@ echo "== api scenarios =="
 run_files test/ticks/api/*.ts
 p1=$?
 
-pkill -f "tsx server.ts" 2>/dev/null
+pkill -f "server[.]ts" 2>/dev/null
 
 echo "== summary =="
 [ $p1 -eq 0 ] && echo "api: pass" || echo "api: FAIL"

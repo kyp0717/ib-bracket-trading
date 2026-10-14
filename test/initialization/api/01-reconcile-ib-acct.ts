@@ -1,4 +1,4 @@
-import { makeSuite, live, waitFor, waitIdle, activate, deactivate } from '../../suite';
+import { makeSuite, live, waitFor, waitIdle, activate, deactivate } from '../../util/suite';
 
 const { pass, fail, summary } = makeSuite('init 01 reconcile ib acct');
 const { st, close } = live();
