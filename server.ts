@@ -4,6 +4,8 @@ import { readFile } from "fs";
 import * as ibmod from "./ib";
 import * as bracket from "./bracket";
 import * as chart from "./chart";
+import { recent } from "./log";
+import type { AuditRecent } from "./wire";
 import { onEvent } from "./emit";
 
 const execClients = new Set<http.ServerResponse>();
@@ -89,6 +91,12 @@ const server = http.createServer(async (req, res) => {
       emitSnapshot(res, { t: "hist", tf: "1d", bars: chart.histSnapshot("1d") });
       emitSnapshot(res, { t: "tapeFull", trades: chart.tapeSnapshot() });
       emitSnapshot(res, { t: "depth", book: chart.bookSnapshot() });
+      return;
+    }
+
+    if (req.method === "GET" && path === "/api/audit") {
+      const body: AuditRecent = { lines: recent.slice(-1000) };
+      sendJson(res, 200, body);
       return;
     }
 

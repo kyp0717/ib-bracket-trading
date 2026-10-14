@@ -1,4 +1,4 @@
-import { makeSuite, live, waitFor, quote, waitAcked, waitIdle, auditLog, r2, activate, switchSymbol } from '../../suite';
+import { makeSuite, live, waitFor, quote, waitAcked, waitIdle, auditLines, r2, activate, switchSymbol } from '../../suite';
 
 const { pass, fail, summary } = makeSuite('api 11 symbol switch deactivates');
 const { st, close } = live();
@@ -14,7 +14,8 @@ try {
   const aaplIds = [st.bracket!.parent.orderId, st.bracket!.stopLeg.orderId, st.bracket!.targetLeg.orderId];
   await switchSymbol('SPY');
   await waitAcked(aaplIds);
-  if (auditLog().includes('symbol switch to SPY')) pass('symbol switch deactivates the live bracket');
+  const lines = await auditLines();
+  if (lines.some((l) => l.includes('symbol switch to SPY'))) pass('symbol switch deactivates the live bracket');
   else fail('symbol switch deactivates the live bracket', 'no audit line');
   await waitIdle(st);
 } catch (e) {

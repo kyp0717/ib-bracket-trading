@@ -133,14 +133,6 @@ function wire(): void {
   });
 
   on(
-    EventName.realtimeBar,
-    (reqId: number, time: number, open: number, high: number, low: number,
-     close: number, volume: number, wap: number, count: number) => {
-      chart.onRealtimeBar(reqId, time, open, high, low, close, volume);
-    }
-  );
-
-  on(
     EventName.historicalData,
     (reqId: number, time: string, open: number, high: number, low: number,
      close: number, volume: number, count: number, wap: number) => {
@@ -153,9 +145,13 @@ function wire(): void {
     }
   );
 
-  on(EventName.historicalDataUpdate, (reqId: number, bar: any) => {
-    chart.onHistoricalDataUpdate(reqId, bar);
-  });
+  on(
+    EventName.historicalDataUpdate,
+    (reqId: number, time: string, open: number, high: number, low: number,
+     close: number, volume: number, barCount: number, wap: number) => {
+      chart.onHistoricalDataUpdate(reqId, { time, open, high, low, close, volume });
+    }
+  );
 
   on(
     EventName.tickByTickAllLast,

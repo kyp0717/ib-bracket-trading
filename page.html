@@ -407,6 +407,9 @@ body {
   letter-spacing: 0.05em;
   pointer-events: none;
 }
+.ch-ind { left: 48px; }
+.ch-ind .ind-v { color: #e8b23a; }
+.ch-ind .ind-e { color: #4fa3ff; }
 
 .tc-col {
   width: 96px;
@@ -532,7 +535,7 @@ button.tc-col-head.active {
     <button class="tc-reset" id="ch-reset" type="button">RESET</button>
   </div>
   <div class="ch-panes">
-    <div class="tc-chart" id="ch-second"><span class="ch-tag" id="ch-tf-tag">10s</span></div>
+    <div class="tc-chart" id="ch-second"><span class="ch-tag" id="ch-tf-tag">10s</span><span class="ch-tag ch-ind" id="ch-ind-tag">VWAP <b class="ind-v" id="ch-ind-vwap"></b> EMA9 <b class="ind-e" id="ch-ind-ema9"></b></span></div>
     <div class="ch-side">
       <div class="ch-side-cols">
         <div class="tc-col" id="ch-col">
@@ -647,6 +650,13 @@ const volume = priceChart.addSeries(LightweightCharts.HistogramSeries, {
   lastValueVisible: false,
   priceLineVisible: false,
 }, 1);
+const vwapLine = priceChart.addSeries(LightweightCharts.LineSeries, {
+  color: '#e8b23a', lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false,
+}, 0);
+const ema9Line = priceChart.addSeries(LightweightCharts.LineSeries, {
+  color: '#4fa3ff', lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false,
+}, 0);
+
 try {
   const panes = priceChart.panes();
   if (panes.length >= 2 && typeof panes[0].setStretchFactor === 'function') {
@@ -901,6 +911,43 @@ function emaSeries(values, period){
   return out;
 }
 
+function vwapSeries(data){
+  const out = [];
+  let day = -1, cumPV = 0, cumV = 0, last = null;
+  for (const b of data) {
+    const d = Math.floor(b.time / 86400);
+    if (d !== day) { day = d; cumPV = 0; cumV = 0; }
+    cumPV += ((b.high + b.low + b.close) / 3) * b.volume;
+    cumV += b.volume;
+    if (cumV > 0) last = cumPV / cumV;
+    if (last !== null) out.push({ time: b.time, value: last });
+  }
+  return out;
+}
+
+function renderIndicators(){
+  if (tf !== '1m') {
+    vwapLine.setData([]);
+    ema9Line.setData([]);
+    $('ch-ind-tag').style.display = 'none';
+    return;
+  }
+  const data = [...bars['1m'].values()].sort((a, b) => a.time - b.time);
+  if (data.length < 9) {
+    vwapLine.setData([]);
+    ema9Line.setData([]);
+    $('ch-ind-tag').style.display = 'none';
+    return;
+  }
+  const v = vwapSeries(data);
+  const e = emaSeries(data.map((b) => b.close), 9);
+  vwapLine.setData(v);
+  ema9Line.setData(data.map((b, i) => ({ time: b.time, value: e[i] })));
+  $('ch-ind-vwap').textContent = v.length ? v[v.length - 1].value.toFixed(2) : '';
+  $('ch-ind-ema9').textContent = e.length ? e[e.length - 1].toFixed(2) : '';
+  $('ch-ind-tag').style.display = 'block';
+}
+
 function renderMacd(){
   const data = [...bars[tf].values()].sort((a, b) => a.time - b.time);
   if (data.length < 35) {
@@ -936,6 +983,7 @@ function setCurrentTf(next){
   priceChart.applyOptions({ timeScale: { timeVisible: tf !== '1d', secondsVisible: tf !== '1d' } });
   macdChart.applyOptions({ timeScale: { timeVisible: tf !== '1d', secondsVisible: tf !== '1d' } });
   renderMacd();
+  renderIndicators();
   priceChart.timeScale().fitContent();
   renderLevels();
 }
@@ -947,6 +995,7 @@ function onHist(m){
     candle.setData(data.map(toCandle));
     volume.setData(data.map(toVolume));
     renderMacd();
+    renderIndicators();
     priceChart.timeScale().fitContent();
     renderLevels();
   }
@@ -959,6 +1008,7 @@ function onBar(m){
     candle.update(toCandle(m.bar));
     volume.update(toVolume(m.bar));
     renderMacd();
+    renderIndicators();
     renderLevels();
   }
   markArrived();

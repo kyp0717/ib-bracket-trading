@@ -66,7 +66,6 @@ export function setSymbol(sym: string): void {
 
   const contract = ibmod.contractFor(symbol);
   reqIds = {
-    rt: ibmod.takeOrderIds(1),
     hist10s: ibmod.takeOrderIds(1),
     hist1m: ibmod.takeOrderIds(1),
     hist1d: ibmod.takeOrderIds(1),
@@ -74,8 +73,7 @@ export function setSymbol(sym: string): void {
   };
 
   try {
-    ibmod.ib.reqRealTimeBars(reqIds.rt, contract, 5, WhatToShow.TRADES, false);
-    ibmod.ib.reqHistoricalData(reqIds.hist10s, contract, "", "14400 S", BarSizeSetting.SECONDS_TEN, WhatToShow.TRADES, 0, 2, false);
+    ibmod.ib.reqHistoricalData(reqIds.hist10s, contract, "", "14400 S", BarSizeSetting.SECONDS_TEN, WhatToShow.TRADES, 0, 2, true);
     ibmod.ib.reqHistoricalData(reqIds.hist1m, contract, "", "2 D", BarSizeSetting.MINUTES_ONE, WhatToShow.TRADES, 0, 2, true);
     ibmod.ib.reqHistoricalData(reqIds.hist1d, contract, "", "6 M", BarSizeSetting.DAYS_ONE, WhatToShow.TRADES, 1, 2, false);
     ibmod.ib.reqTickByTickData(reqIds.tape, contract, TickByTickDataType.AllLast, 0, false);
@@ -92,7 +90,6 @@ export function setSymbol(sym: string): void {
 function cancelAll(): void {
   if (!symbol) return;
   try {
-    ibmod.ib.cancelRealTimeBars(reqIds.rt);
     ibmod.ib.cancelHistoricalData(reqIds.hist10s);
     ibmod.ib.cancelHistoricalData(reqIds.hist1m);
     ibmod.ib.cancelHistoricalData(reqIds.hist1d);
@@ -123,14 +120,6 @@ function bucket(tf: "10s" | "1m", time: number, bar: Bar): Bar {
   return nb;
 }
 
-export function onRealtimeBar(reqId: number, time: number, open: number, high: number, low: number, close: number, volume: number): void {
-  if (reqId !== reqIds.rt) return;
-  const bar: Bar = { time, open, high, low, close, volume };
-  for (const tf of ["10s", "1m"] as const) {
-    emit("market", { t: "bar", tf, bar: bucket(tf, time, bar) });
-  }
-}
-
 export function onHistoricalData(reqId: number, time: number, open: number, high: number, low: number, close: number, volume: number): void {
   if (!Number.isFinite(time)) return;
   if (reqId === reqIds.hist10s) bucket("10s", time, { time, open, high, low, close, volume });
@@ -150,11 +139,12 @@ export function onHistoricalDataEnd(reqId: number): void {
 }
 
 export function onHistoricalDataUpdate(reqId: number, bar: any): void {
-  if (reqId !== reqIds.hist1m) return;
-  const nb = bucket("1m", Number(bar.time), {
+  const tf = reqId === reqIds.hist10s ? "10s" : reqId === reqIds.hist1m ? "1m" : undefined;
+  if (!tf) return;
+  const nb = bucket(tf, Number(bar.time), {
     time: Number(bar.time), open: bar.open, high: bar.high, low: bar.low, close: bar.close, volume: bar.volume || 0,
   });
-  emit("market", { t: "bar", tf: "1m", bar: nb });
+  emit("market", { t: "bar", tf, bar: nb });
 }
 
 export function onTick(reqId: number, time: number, price: number, size: number): void {

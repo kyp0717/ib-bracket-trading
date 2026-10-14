@@ -62,3 +62,7 @@ export interface ConnState {
   nextValidId: number;
   reconciled: boolean;
 }
+
+export interface AuditRecent {
+  lines: string[];
+}

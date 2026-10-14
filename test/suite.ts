@@ -1,6 +1,6 @@
 import { readFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import type { Bar, Bracket, BracketSnapshot, ConnState, DepthBook, Trade } from '../wire';
+import type { AuditRecent, Bar, Bracket, BracketSnapshot, ConnState, DepthBook, Trade } from '../wire';
 
 export const APP = process.env.E2E_APP_ADDR || 'http://127.0.0.1:8080';
 
@@ -79,12 +79,15 @@ export interface LiveState {
   depthMsgs: number;
   tapeMsgs: number;
   tapeTimes: number[];
+  bar10Msgs: number;
+  lastBar10: { time: number; close: number } | null;
+  bars1m: Bar[];
   auditLines: string[];
   symbol: string;
 }
 
 export function live(): { st: LiveState; close(): void } {
-  const st: LiveState = { reconciled: false, cancelInFlight: false, bracket: null, depth: null, depthMsgs: 0, tapeMsgs: 0, tapeTimes: [], auditLines: [], symbol: '' };
+  const st: LiveState = { reconciled: false, cancelInFlight: false, bracket: null, depth: null, depthMsgs: 0, tapeMsgs: 0, tapeTimes: [], bar10Msgs: 0, lastBar10: null, bars1m: [], auditLines: [], symbol: '' };
   const onmsg = (e: { data: string }) => {
     const m = JSON.parse(e.data) as SseMsg;
     if (m.t === 'conn') st.reconciled = m.reconciled;
@@ -100,6 +103,17 @@ export function live(): { st: LiveState; close(): void } {
       st.tapeMsgs++;
       st.tapeTimes.push(Date.now());
       if (st.tapeTimes.length > 600) st.tapeTimes.shift();
+    }
+    if (m.t === 'bar' && m.tf === '10s') {
+      st.bar10Msgs++;
+      st.lastBar10 = { time: m.bar.time, close: m.bar.close };
+    }
+    if (m.t === 'hist' && m.tf === '1m') {
+      st.bars1m = m.bars.slice(-400);
+    }
+    if (m.t === 'bar' && m.tf === '1m') {
+      st.bars1m.push(m.bar);
+      if (st.bars1m.length > 400) st.bars1m.shift();
     }
     if (m.t === 'audit') st.auditLines.push(m.line);
   };
@@ -126,23 +140,25 @@ export async function waitIdle(st: LiveState, ms = 15000): Promise<void> {
   await waitFor('cancels settled', ms, () => !st.cancelInFlight);
 }
 
-export function auditLog(): string {
-  try {
-    return readFileSync('audit.log', 'utf8');
-  } catch {
-    return '';
-  }
+export async function auditLines(): Promise<string[]> {
+  const r = await api<AuditRecent>('/api/audit');
+  return r.lines;
 }
 
-export function acked(orderId: number): boolean {
-  const log = auditLog();
-  return log.includes(`order=${orderId} Cancelled`)
-    || log.includes(`order=${orderId} Inactive`)
-    || log.includes(`order=${orderId} ApiCancelled`);
+export async function acked(orderId: number): Promise<boolean> {
+  const lines = await auditLines();
+  return lines.some((l) => l.includes(`order=${orderId} Cancelled`)
+    || l.includes(`order=${orderId} Inactive`)
+    || l.includes(`order=${orderId} ApiCancelled`));
 }
 
 export async function waitAcked(orderIds: number[], ms = 20000): Promise<void> {
-  await waitFor(`cancel acks for ${orderIds.join('/')}`, ms, () => orderIds.every(acked));
+  await waitFor(`cancel acks for ${orderIds.join('/')}`, ms, async () => {
+    const lines = await auditLines();
+    return orderIds.every((id) => lines.some((l) => l.includes(`order=${id} Cancelled`)
+      || l.includes(`order=${id} Inactive`)
+      || l.includes(`order=${id} ApiCancelled`)));
+  });
 }
 
 export async function flattenUntilFlat(symbol: string, ms = 90000): Promise<boolean> {
