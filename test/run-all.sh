@@ -31,9 +31,13 @@ d=$?
 bash test/ticks/run-ticks-test.sh "$PORT"
 t=$?
 
+bash test/order-at-server/run-order-at-server-test.sh "$PORT"
+o=$?
+
 echo "== overall =="
 [ $i -eq 0 ] && echo "initialization: pass" || echo "initialization: FAIL"
 [ $b -eq 0 ] && echo "bracket: pass" || echo "bracket: FAIL"
 [ $d -eq 0 ] && echo "depth: pass" || echo "depth: FAIL"
 [ $t -eq 0 ] && echo "ticks: pass" || echo "ticks: FAIL"
-[ $i -eq 0 ] && [ $b -eq 0 ] && [ $d -eq 0 ] && [ $t -eq 0 ]
+[ $o -eq 0 ] && echo "order-at-server: pass" || echo "order-at-server: FAIL"
+[ $i -eq 0 ] && [ $b -eq 0 ] && [ $d -eq 0 ] && [ $t -eq 0 ] && [ $o -eq 0 ]

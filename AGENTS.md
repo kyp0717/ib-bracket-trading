@@ -121,7 +121,8 @@ ls-trader `TRADER_S3_BUCKET` variable is intentionally ignored here.
   survives, which turns later scenarios red in confusing ways. See
   resource/lessons/20261013-market-orders-are-limit-only-outside-regular-hours.md.
 - Each test area lives in its own folder under `test/`:
-  `initialization/`, `bracket/`, `depth/`, `ticks/`, `health-check/`.
+  `initialization/`, `bracket/`, `depth/`, `ticks/`, `order-at-server/`,
+  `health-check/`.
   Shared helpers live at the test root:
   `suite.ts` (pass/fail, waits, SSE state, typed API helpers, evidence
   paths), `web.ts` (browser setup and screenshots), and `sse.ts`
