@@ -173,6 +173,6 @@ function emitSnapshot(res: http.ServerResponse, msg: unknown): void {
 }
 
 ibmod.connect();
-server.listen(ibmod.state.webPort, () => {
+server.listen(ibmod.state.webPort, "127.0.0.1", () => {
   console.log(`web ui on http://localhost:${ibmod.state.webPort}`);
 });

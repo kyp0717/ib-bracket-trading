@@ -5,19 +5,31 @@ const { st, close } = live();
 
 try {
   await waitFor('filled bracket from previous scenario', 15000, () => st.bracket && st.bracket!.state !== 'closed' && st.bracket!.entryLocked);
-  const r = await deactivate('scenario 6');
-  if (r.ok) pass('deactivate while filled accepted');
-  else fail('deactivate while filled accepted', JSON.stringify(r));
+
+  const r = await deactivate('scenario 9');
+  if (!r.ok && /flatten first/.test(r.error || '')) {
+    pass('deactivate while filled and open refused with flatten pointer');
+  } else {
+    fail('deactivate while filled and open refused with flatten pointer', JSON.stringify(r));
+  }
+  const kept = st.bracket && st.bracket!.state !== 'closed' &&
+    !['Cancelled', 'Inactive', 'ApiCancelled', 'Filled'].includes(st.bracket!.stopLeg.status) &&
+    !['Cancelled', 'Inactive', 'ApiCancelled', 'Filled'].includes(st.bracket!.targetLeg.status);
+  if (kept) pass('children untouched after refused deactivate');
+  else fail('children untouched after refused deactivate', JSON.stringify(st.bracket));
+
+  const r2 = await flatten('SPY');
+  if (r2.ok) pass('flatten accepted');
+  else fail('flatten accepted', JSON.stringify(r2));
+
+  await waitFor('deactivate accepted after flatten', 60000, async () => (await deactivate('scenario 9 flat')).ok);
+  pass('deactivate accepted once flat');
   await waitFor('children cancelled', 20000, () => {
     const b = st.bracket;
     const dead = (s: string) => s === 'Cancelled' || s === 'Inactive' || s === 'ApiCancelled';
     return b && dead(b.stopLeg.status) && dead(b.targetLeg.status);
   });
-  pass('live children cancelled after deactivate');
-  await waitIdle(st);
-  const r2 = await flatten('SPY');
-  if (r2.ok) pass('flatten closes the naked entry position');
-  else fail('flatten closes the naked entry position', JSON.stringify(r2));
+  pass('live children cancelled after flat deactivate');
   await waitIdle(st);
 } catch (e) {
   fail('suite aborted', String(e));

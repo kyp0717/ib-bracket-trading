@@ -1,5 +1,6 @@
 import { OrderAction, OrderType } from "@stoqey/ib";
 import * as ibmod from "./ib";
+import { bookSnapshot } from "./chart";
 import { audit } from "./log";
 import { emit } from "./emit";
 import type { Bracket, BracketSnapshot, Leg } from "./wire";
@@ -178,6 +179,10 @@ const TERMINAL = ["Filled", "Cancelled", "Inactive", "ApiCancelled"];
 export function deactivate(reason: string): { ok: boolean; error?: string } {
   const br = current;
   if (!br) return { ok: false, error: "no bracket" };
+  if (br.entryLocked && (positions.get(br.symbol) ?? 0) !== 0) {
+    audit("deactivate-refused", `${br.symbol}: ${reason}`);
+    return { ok: false, error: `entry filled and position open for ${br.symbol}, flatten first` };
+  }
 
   const sent: number[] = [];
   for (const leg of [br.parent, br.stopLeg, br.targetLeg]) {
@@ -405,17 +410,21 @@ export function hasWorking(): boolean {
 export function flatten(symbol: string): { ok: boolean; error?: string } {
   const pos = positions.get(symbol) ?? 0;
   if (pos === 0) return { ok: false, error: `no position for ${symbol}` };
+  const book = bookSnapshot();
+  const px = pos > 0 ? book.bids[0]?.price : book.asks[0]?.price;
+  if (!px) return { ok: false, error: `no ${pos > 0 ? "bid" : "ask"} on the book for ${symbol}, refusing blind flatten` };
   const orderId = ibmod.takeOrderIds(1);
   ibmod.place(ibmod.contractFor(symbol), {
     orderId,
     action: pos > 0 ? OrderAction.SELL : OrderAction.BUY,
-    orderType: OrderType.MKT,
+    orderType: OrderType.LMT,
     totalQuantity: Math.abs(pos),
+    lmtPrice: px,
     tif: "DAY",
     transmit: true,
     outsideRth: true,
   });
-  audit("flatten", `${symbol}: ${pos > 0 ? "sell" : "buy"} ${Math.abs(pos)} market order ${orderId}`);
+  audit("flatten", `${symbol}: ${pos > 0 ? "sell" : "buy"} ${Math.abs(pos)} at ${pos > 0 ? "bid" : "ask"} ${px} order ${orderId}`);
   return { ok: true };
 }
 

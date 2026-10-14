@@ -43,9 +43,9 @@ try {
     fail('server entry unchanged after locked drag', JSON.stringify(st.bracket && st.bracket!.entry));
   }
 
-  await deactivate('cleanup');
-  await waitIdle(st);
   await flatten('SPY');
+  await waitFor('deactivate accepted after flatten', 60000, async () => (await deactivate('cleanup')).ok);
+  await waitIdle(st);
 } catch (e) {
   await snap(page, import.meta.url, 'aborted');
   fail('suite aborted', String(e));

@@ -521,8 +521,9 @@ button.tc-col-head.active {
     </span>
     <div class="tc-size" id="ch-size">
       <span class="tc-size-label">SIZE:</span>
+      <button class="tc-size-btn active" data-qty="1" type="button">1</button>
       <button class="tc-size-btn" data-qty="10" type="button">10</button>
-      <button class="tc-size-btn active" data-qty="100" type="button">100</button>
+      <button class="tc-size-btn" data-qty="100" type="button">100</button>
     </div>
     <div class="tc-pos" id="ch-pos">
       <span id="ch-pos-shares">POSITION: 0</span>
@@ -592,7 +593,7 @@ let bracket = null;        // server snapshot: current bracket or null
 let bracketActive = false;
 let entryLocked = false;
 let cancelInFlight = false;
-let qty = 100;
+let qty = 1;
 let orderType = 'LMT';
 let tf = '10s';
 let bars = { '10s': new Map(), '1m': new Map(), '1d': new Map() };
