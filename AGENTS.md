@@ -211,11 +211,14 @@ Two consequences to respect:
   `<area>-app-<timestamp>.log` from the runner. To diagnose a red
   scenario, pull its evidence object from S3 first.
 - Every issue found in a run, especially edge cases, gets a lesson
-  file in `resource/lessons/` named `YYYYMMDD-topic.md` before the
-  work is committed: what was seen, why it happened, the fix, and the
-  rule that falls out of it. A red scenario without a lesson is not
-  finished. Design decisions no scenario can express go into
-  AGENTS.md, not into code comments.
+  file in `resource/lessons/` before the work is committed: what was
+  seen, why it happened, the fix, and the rule that falls out of it. A
+  red scenario without a lesson is not finished. Naming and the full
+  procedure live in the `lesson-learned` skill (`skills/lesson-learned/`):
+  `domain.<YYYYMMDD>.<title>.md` for knowledge about the outside world,
+  `edge.<YYYYMMDD>.<title>.md` for a case the happy path missed. Design
+  decisions no scenario can express go into AGENTS.md, not into code
+  comments or lesson files.
 - To add a scenario: copy a sibling scenario into the right phase
   folder with the next number, name the file after what it proves, and
   follow the check pattern: one story per file, every assertion is one
