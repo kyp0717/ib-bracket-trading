@@ -70,20 +70,20 @@ start, so every change runs the same loop, scoped to the delta in
 front of it. Each step is one narrow skill under `.agents/skills/sdlc/`;
 the workflow lives here, not in the skills.
 
-1. **classify** — name the data shape first (a type in `wire.ts`),
+0. **classify** — name the data shape first (a type in `wire.ts`),
    then the proof pair and the owning area. Borrowed from `build-test`
    step 0; no new skill.
-2. **architect** — sketch two or three candidate shapes, judge against
+1. **architect** — sketch two or three candidate shapes, judge against
    this file's contracts, pick one, record why the losers lost.
-3. **interrogate** — gated, not fixed: only on ties, or when the change
+2. **interrogate** — gated, not fixed: only on ties, or when the change
    touches order paths, live account rules, or a wire type.
-4. **implement** — plain work, smallest change that fits the pick.
-5. **test** (`build-test`) — author the proof pair into the numbered
+3. **implement** — plain work, smallest change that fits the pick.
+4. **test** (`build-test`) — author the proof pair into the numbered
    chain, and name the feature file in `resource/features/` that must
    be updated in the same commit.
-6. **track-feature** — sync `resource/features/` with what shipped.
+5. **track-feature** — sync `resource/features/` with what shipped.
    Writes the inventory only; never edits scenarios.
-7. **validate** — doctor, drive the changed area's feature file, prove
+6. **validate** — doctor, drive the changed area's feature file, prove
    with pass/fail lines and S3 evidence, end flat. Reads the map,
    never edits it.
 
@@ -219,6 +219,11 @@ Two consequences to respect:
   One proof without the other is not done: data without the visual
   check can render wrong and pass, and a visual check without the
   data check cannot say whether the app or the rendering lied.
+- Running the proof is the `validate` skill: doctor first, drive the
+  changed area's feature file in `resource/features/`, end flat. The
+  inventory itself is written only by `track-feature`; scenarios and
+  feature files connect through shared ids and routes, resolved with
+  graft on demand, never through stored links.
 - Scenarios are one numbered file per story, flat inside the area:
   `test/<area>/<nn>-<story>.ts`. One story per file: a scenario proves
   exactly one behavior and the file name says which. Numbers fix
