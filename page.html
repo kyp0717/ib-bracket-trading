@@ -115,19 +115,9 @@ body {
   min-height: 26px;
 }
 
-.ch-sym {
-  font-family: var(--mono);
-  font-size: 1rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-}
-
 .ch-switch {
   display: flex;
   gap: 5px;
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
 }
 #conn-pill { margin-left: auto; }
 
@@ -188,20 +178,6 @@ body {
   min-width: 0;
 }
 
-.ch-subhead {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 1px 8px;
-  min-height: 26px;
-  border-bottom: 1px solid var(--border);
-}
-.ch-subhead .tc-reset {
-  width: auto;
-  margin: 0;
-  padding: 1px 8px;
-}
-
 .ch-side-cols {
   display: flex;
   flex: 0 0 75%;
@@ -239,6 +215,9 @@ body {
 .ch-head .tc-size { padding: 0; margin-left: auto; }
 
 .ch-head .tc-pos {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
   flex-direction: row;
   align-items: center;
   gap: 10px;
@@ -434,6 +413,22 @@ body {
 .ch-ind .ind-e { color: #4fa3ff; }
 #ch-tf { position: absolute; top: 4px; left: 8px; z-index: 5; }
 
+.tc-watermark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+  font-family: var(--mono);
+  font-size: 5rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: rgba(141, 151, 161, 0.07);
+  text-transform: uppercase;
+  pointer-events: none;
+  user-select: none;
+}
+
 .tc-col {
   width: 96px;
   flex: 0 0 96px;
@@ -526,29 +521,26 @@ button.tc-col-head.active {
 <body>
 <div class="charts-wrap">
   <div class="ch-head">
-    <span class="ch-sym" id="ch-sym">SPY</span>
-    <span class="td-feedback" id="ch-feedback"></span>
-    <span class="pill" id="conn-pill"><span class="dot wait" id="conn-dot"></span><span id="conn-text">connecting</span></span>
     <form class="ch-switch" id="ch-form">
-      <input id="ch-input" placeholder="TICKER" autocomplete="off" maxlength="8">
+      <input id="ch-input" autocomplete="off" maxlength="8">
       <button type="submit" id="ch-switch-btn">Switch</button>
     </form>
+    <div class="tc-pos" id="ch-pos">
+      <span id="ch-pos-shares">POSITION: 0</span>
+      <span id="ch-pos-pl">PNL: $0.00</span>
+    </div>
+    <div class="tc-size" id="ch-size">
+      <span class="tc-size-label">SIZE:</span>
+      <button class="tc-size-btn active" data-qty="1" type="button">1</button>
+      <button class="tc-size-btn" data-qty="10" type="button">10</button>
+      <button class="tc-size-btn" data-qty="100" type="button">100</button>
+    </div>
+    <span class="td-feedback" id="ch-feedback"></span>
+    <span class="pill" id="conn-pill"><span class="dot wait" id="conn-dot"></span><span id="conn-text">connecting</span></span>
   </div>
   <div class="ch-panes">
-    <div class="tc-chart" id="ch-second"><span class="ch-tag ch-ind" id="ch-ind-tag">VWAP <b class="ind-v" id="ch-ind-vwap"></b> EMA9 <b class="ind-e" id="ch-ind-ema9"></b></span><span class="tc-size" id="ch-tf"><button class="tc-size-btn active" data-tf="10s" type="button">10s</button><button class="tc-size-btn" data-tf="1m" type="button">1m</button><button class="tc-size-btn" data-tf="1d" type="button">1d</button></span></div>
+    <div class="tc-chart" id="ch-second"><div class="tc-watermark" id="ch-wm"></div><span class="ch-tag ch-ind" id="ch-ind-tag">VWAP <b class="ind-v" id="ch-ind-vwap"></b> EMA9 <b class="ind-e" id="ch-ind-ema9"></b></span><span class="tc-size" id="ch-tf"><button class="tc-size-btn active" data-tf="10s" type="button">10s</button><button class="tc-size-btn" data-tf="1m" type="button">1m</button><button class="tc-size-btn" data-tf="1d" type="button">1d</button></span></div>
     <div class="ch-side">
-      <div class="ch-subhead">
-        <div class="tc-size" id="ch-size">
-          <span class="tc-size-label">SIZE:</span>
-          <button class="tc-size-btn active" data-qty="1" type="button">1</button>
-          <button class="tc-size-btn" data-qty="10" type="button">10</button>
-          <button class="tc-size-btn" data-qty="100" type="button">100</button>
-        </div>
-        <div class="tc-pos" id="ch-pos">
-          <span id="ch-pos-shares">POSITION: 0</span>
-          <span id="ch-pos-pl">PNL: $0.00</span>
-        </div>
-      </div>
       <div class="ch-side-cols">
         <div class="tc-col" id="ch-col">
           <button class="tc-col-head" id="ch-arm" type="button">BRACKET DISABLE</button>
@@ -1151,12 +1143,17 @@ function resetCharts(){
   renderDepth();
 }
 
+function renderSymbol(){
+  $('ch-input').value = symbol;
+  $('ch-wm').textContent = symbol;
+}
+
 function setSymbol(sym){
   const next = (sym || '').trim().toUpperCase();
   if (!next || next === symbol) return;
   symbol = next;
   try { localStorage.setItem(SYMBOL_KEY, symbol); } catch (e) {}
-  $('ch-sym').textContent = symbol;
+  renderSymbol();
   levels = {};
   lastPrice = null;
   needsPriceFit = true;
@@ -1170,7 +1167,7 @@ $('ch-form').addEventListener('submit', (ev) => {
   const t = $('ch-input').value.trim().toUpperCase();
   if (!t) return;
   setSymbol(t);
-  $('ch-input').value = '';
+  renderSymbol();
   $('ch-feedback').textContent = 'switch ' + t + ' sent';
 });
 
@@ -1369,7 +1366,7 @@ setInterval(() => {
 
 window.__priceToY = (p) => candle.priceToCoordinate(p);
 
-$('ch-sym').textContent = symbol;
+renderSymbol();
 showSwitching(symbol);
 post('/api/symbol', { symbol });
 })();

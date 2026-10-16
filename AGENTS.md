@@ -47,6 +47,20 @@ knows (app modules live in `src/`, shared test helpers in `test/util/`):
   for data traffic (bars, tape, depth). The split keeps heavy data
   messages from queueing behind order events.
 
+## GUI layout contract
+
+- One header only. The top header is the single control bar (ticker
+  input, position/pnl, size, connection pill). There is no second header
+  row: a second header stacks a row onto the right-hand side only,
+  which pushes the bracket and order rails down while the chart top
+  stays at the pane top, so chart and rails no longer share a top edge.
+- Bracket rail, order rail, and chart must keep aligned top edges at all
+  viewport sizes. `test/web-interface/09-header-layout.ts` asserts this.
+- The ticker input doubles as the viewed-symbol indicator: it always
+  shows the current symbol and submits a new one. The chart carries a
+  large low-opacity watermark of the symbol so a glance or a screenshot
+  names the ticker.
+
 ## Two-Machine Workflow (woodlawn ↔ linden) — IMPORTANT
 
 Development happens on two machines, **woodlawn** and **linden**. ALL
