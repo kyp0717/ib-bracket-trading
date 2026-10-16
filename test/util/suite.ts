@@ -174,7 +174,7 @@ export async function flattenUntilFlat(symbol: string, ms = 90000): Promise<bool
 export const r2 = (x: number) => Math.round(x * 100) / 100;
 
 export function evidencePath(metaUrl: string, name: string, ext = 'png'): string {
-  const dir = new URL('./evidence/', import.meta.url);
+  const dir = new URL('../evidence/', import.meta.url);
   mkdirSync(dir, { recursive: true });
   const file = fileURLToPath(metaUrl).split('/test/')[1].replace(/\.ts$/, '');
   const key = file.replace(/\//g, '-');

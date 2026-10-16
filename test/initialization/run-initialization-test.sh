@@ -61,7 +61,7 @@ doctor
 echo "health check ok"
 
 echo "== api scenarios =="
-run_files test/initialization/api/*.ts
+run_files test/initialization/*.ts
 p1=$?
 
 pkill -f "server[.]ts" 2>/dev/null
