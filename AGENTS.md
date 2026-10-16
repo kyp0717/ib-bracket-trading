@@ -57,11 +57,40 @@ knows (app modules live in `src/`, shared test helpers in `test/util/`):
   which pushes the bracket and order rails down while the chart top
   stays at the pane top, so chart and rails no longer share a top edge.
 - Bracket rail, order rail, and chart must keep aligned top edges at all
-  viewport sizes. `test/web-interface/09-header-layout.ts` asserts this.
+  viewport sizes. `test/web-ui/09-header-layout.ts` asserts this.
 - The ticker input doubles as the viewed-symbol indicator: it always
   shows the current symbol and submits a new one. The chart carries a
   large low-opacity watermark of the symbol so a glance or a screenshot
   names the ticker.
+
+## SDLC workflow (incremental builds)
+
+All builds are incremental. The full design is never known at the
+start, so every change runs the same loop, scoped to the delta in
+front of it. Each step is one narrow skill under `skills/sdlc/`
+(symlinked into `.agents/skills/` for discovery); the workflow lives
+here, not in the skills.
+
+1. **classify** — name the data shape first (a type in `wire.ts`),
+   then the proof pair and the owning area. Borrowed from `build-test`
+   step 0; no new skill.
+2. **architect** — sketch two or three candidate shapes, judge against
+   this file's contracts, pick one, record why the losers lost.
+3. **interrogate** — gated, not fixed: only on ties, or when the change
+   touches order paths, live account rules, or a wire type.
+4. **implement** — plain work, smallest change that fits the pick.
+5. **test** (`build-test`) — author the proof pair into the numbered
+   chain, and name the feature file in `resource/features/` that must
+   be updated in the same commit.
+6. **track-feature** — sync `resource/features/` with what shipped.
+   Writes the inventory only; never edits scenarios.
+7. **validate** — doctor, drive the changed area's feature file, prove
+   with pass/fail lines and S3 evidence, end flat. Reads the map,
+   never edits it.
+
+Red at any point routes to `lesson-learned` before the loop continues.
+Skills: `skills/sdlc/{architect,interrogate,build-test,track-feature,validate}/`,
+plus `skills/lesson-learned/` outside the numbered steps.
 
 ## Two-Machine Workflow (woodlawn ↔ linden) — IMPORTANT
 
@@ -164,14 +193,14 @@ Two consequences to respect:
   resource/lessons/20261013-market-orders-are-limit-only-outside-regular-hours.md.
 - Each test area lives in its own folder under `test/`:
   `initialization/`, `bracket/`, `depth/`, `ticks/`, `order-at-server/`,
-  `scanner/`, `web-interface/`, `health-check/`. Areas hold their
+  `scanner/`, `web-ui/`, `health-check/`. Areas hold their
   scenarios as flat numbered files directly in the folder; no `api/`
   phase folder. Two subfolders remain because the runner treats them
   specially: `bracket/reconnect/` (runs after the runner restarts the
   app) and `bracket/web/` (behavior scenarios that drive the bracket
   state machine through the browser and chain with the flat bracket
   scenarios). Everything that proves presentation, layout, styling, and
-  rendering, whatever area feeds it, lives in `web-interface/`.
+  rendering, whatever area feeds it, lives in `web-ui/`.
   Shared helpers live in `test/util/`:
   `suite.ts` (pass/fail, waits, SSE state, typed API helpers, evidence
   paths), `web.ts` (browser setup and screenshots), `sse.ts`
@@ -220,8 +249,8 @@ Two consequences to respect:
   `<area>-<path>-<nn>-<story>-<what>.png`, generated automatically
   from the scenario file path, where `<path>` is empty for flat area
   scenarios. Example:
-  `test/web-interface/03-size-defaults-to-one.ts` on abort writes
-  `evidence/<host>/web-interface-03-size-defaults-to-one-aborted.png`,
+  `test/web-ui/03-size-dropdown.ts` on abort writes
+  `evidence/<host>/web-ui-03-size-dropdown-aborted.png`,
   and `test/bracket/web/03-locked-entry.ts` writes
   `evidence/<host>/bracket-web-03-locked-entry-aborted.png`. App logs:
   `<area>-app-<timestamp>.log` from the runner. To diagnose a red

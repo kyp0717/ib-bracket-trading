@@ -49,7 +49,7 @@ run_files() {
 
 save_evidence() {
   mkdir -p "$EV"
-  local f="$EV/web-interface-app-$(date +%Y%m%d-%H%M%S).log"
+  local f="$EV/web-ui-app-$(date +%Y%m%d-%H%M%S).log"
   cp "$LOG" "$f"
   npx tsx test/aws-s3/upload-evidence.ts "$f" 2>/dev/null || true
   echo "evidence saved under $EV"
@@ -61,8 +61,8 @@ wait_app
 doctor
 echo "health check ok"
 
-echo "== api scenarios =="
-run_files test/web-interface/*.ts
+echo "== web-ui scenarios =="
+run_files test/web-ui/*.ts
 p1=$?
 
 pkill -f "server[.]ts" 2>/dev/null

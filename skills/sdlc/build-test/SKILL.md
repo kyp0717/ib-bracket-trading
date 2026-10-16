@@ -8,7 +8,8 @@ description: Use when adding, changing, or debugging a test in this repo. Choose
 A test here is one story in one numbered TypeScript file, run through
 `tsx`, type-checked with the app against `wire.ts` before any run. The
 rules below are how this project's tests are actually built; follow
-them and the scenario needs no reviewer's context.
+them and the scenario needs no reviewer's context. This skill is step 4
+(test) of the SDLC workflow in AGENTS.md; step 5 is `track-feature`.
 
 ## Step 0. Classify the change, pick the proof pair
 
@@ -20,9 +21,12 @@ wire and render wrong.
 
 - **Behavior that surfaces in the browser**: a data proof in the owning
   area's api scenario (the values that cross the wire, asserted from
-  the SSE payload or HTTP response), then a visual proof in
-  `web-interface/` or `bracket/web/` asserting the same values appear
-  rendered in the page. One without the other is not done.
+  the SSE payload or HTTP response), then a visual proof in `web-ui/`
+  or `bracket/web/` asserting the same values appear rendered in the
+  page. One without the other is not done.
+- Name the feature file in `resource/features/` the change touches and
+  require it to be updated in the same commit. If no file matches, the
+  feature is new: defer to the `track-feature` skill.
 - **Critical data path or invariant**: a static guard
   (`00-check-<thing>-in-ast.ts`, walking the AST to prove how the code
   is written) paired with a runtime proof (an audit line, an S3
@@ -39,6 +43,7 @@ wire and render wrong.
 Areas and what owns them:
 
 - `initialization/` first boot, contract, schema.
+- `web-ui/` everything about look, layout, and rendered values.
 - `bracket/` order state machine, flat numbered scenarios.
 - `bracket/reconnect/` runs only after the runner restarts the app.
 - `bracket/web/` behavior scenarios that drive the state machine
@@ -46,7 +51,6 @@ Areas and what owns them:
 - `depth/`, `ticks/` market data paths, including the static guards.
 - `order-at-server/` what a second IB client can see and cancel.
 - `scanner/` the candidate scanner.
-- `web-interface/` everything about look, layout, and rendered values.
 - `health-check/` the doctor; extend it when a new precondition starts
   mattering.
 
