@@ -79,6 +79,7 @@ export interface LiveState {
   depthMsgs: number;
   tapeMsgs: number;
   tapeTimes: number[];
+  lastTapePrice: number | null;
   bar10Msgs: number;
   lastBar10: { time: number; close: number } | null;
   bars1m: Bar[];
@@ -87,7 +88,7 @@ export interface LiveState {
 }
 
 export function live(): { st: LiveState; close(): void } {
-  const st: LiveState = { reconciled: false, cancelInFlight: false, bracket: null, depth: null, depthMsgs: 0, tapeMsgs: 0, tapeTimes: [], bar10Msgs: 0, lastBar10: null, bars1m: [], auditLines: [], symbol: '' };
+  const st: LiveState = { reconciled: false, cancelInFlight: false, bracket: null, depth: null, depthMsgs: 0, tapeMsgs: 0, tapeTimes: [], lastTapePrice: null, bar10Msgs: 0, lastBar10: null, bars1m: [], auditLines: [], symbol: '' };
   const onmsg = (e: { data: string }) => {
     const m = JSON.parse(e.data) as SseMsg;
     if (m.t === 'conn') st.reconciled = m.reconciled;
@@ -101,6 +102,7 @@ export function live(): { st: LiveState; close(): void } {
     }
     if (m.t === 'tape') {
       st.tapeMsgs++;
+      st.lastTapePrice = m.trade.price;
       st.tapeTimes.push(Date.now());
       if (st.tapeTimes.length > 600) st.tapeTimes.shift();
     }

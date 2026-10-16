@@ -12,6 +12,9 @@ stop and hand the drift to `track-feature`.
 
 ## Procedure
 
+0. Defect mode: before any fix lands, reproduce the defect on the same
+   surface (live page or live stream) and name the failing contract.
+   A defect that cannot be reproduced is classified, not fixed.
 1. Doctor first: `npx tsx test/health-check/health-check.ts <port>`
    must pass before anything drives the app. Paper port only. Nothing
    under this procedure points at 4001.

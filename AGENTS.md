@@ -70,10 +70,14 @@ start, so every change runs the same loop, scoped to the delta in
 front of it. Each step is one narrow skill under `.agents/skills/sdlc/`;
 the workflow lives here, not in the skills.
 
-0. **classify** — name the data shape first (a type in `wire.ts`),
-   then the proof pair and the owning area. Borrowed from `build-test`
-   step 0; no new skill.
-1. **architect** — sketch two or three candidate shapes, judge against
+0. **classify** — first decide the mode: a **change** (new behavior)
+   or a **defect** (existing behavior violates its contract). Defects
+   reproduce on the same surface and root-cause to the mechanism
+   before step 1; the root cause becomes a fixed constraint on the
+   design. Then name the data shape (a type in `wire.ts`), the proof
+   pair, and the owning area. Borrowed from `build-test` step 0; no
+   new skill.
+1. **design** — sketch two or three candidate shapes, judge against
    this file's contracts, pick one, record why the losers lost.
 2. **interrogate** — gated, not fixed: only on ties, or when the change
    touches order paths, live account rules, or a wire type.
@@ -88,7 +92,7 @@ the workflow lives here, not in the skills.
    never edits it.
 
 Red at any point routes to `lesson-learned` before the loop continues.
-Skills: `.agents/skills/sdlc/{architect,interrogate,build-test,track-feature,validate}/`,
+Skills: `.agents/skills/sdlc/{design,interrogate,build-test,track-feature,validate}/`,
 plus `.agents/skills/lesson-learned/` outside the numbered steps.
 
 ## Two-Machine Workflow (woodlawn ↔ linden) — IMPORTANT

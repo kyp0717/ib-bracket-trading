@@ -1,5 +1,5 @@
 ---
-name: architect
+name: design
 description: Use before implementing any nontrivial change that crosses a function or module boundary. Explores two or three candidate shapes in parallel, evaluates them against the AGENTS.md contract, picks one, and records why the losers lost. Step 1 of the SDLC workflow in AGENTS.md.
 ---
 

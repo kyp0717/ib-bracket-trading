@@ -34,6 +34,10 @@ updates over `/market`.
 
 ## What usually lies
 
+- The forming candle on 10s and 1m is built tick by tick from
+  `reqTickByTickAllLast` prints, not from IB's keepUpToDate bar pushes;
+  its close always equals the last tape price. KeepUpToDate only owns
+  the daily bars and the quiet-symbol fallback before the first tick.
 - The 10s bars only exist while the app aggregates; on a fresh symbol
   the chart can be empty for a stretch with the `Loading SYM` overlay
   up. Wait for bars, not for the overlay to disappear.

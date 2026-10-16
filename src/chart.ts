@@ -63,6 +63,7 @@ export function setSymbol(sym: string): void {
   daily.length = 0;
   tape.length = 0;
   books.clear();
+  lastTickTime = 0;
 
   const contract = ibmod.contractFor(symbol);
   reqIds = {
@@ -141,10 +142,20 @@ export function onHistoricalDataEnd(reqId: number): void {
 export function onHistoricalDataUpdate(reqId: number, bar: any): void {
   const tf = reqId === reqIds.hist10s ? "10s" : reqId === reqIds.hist1m ? "1m" : undefined;
   if (!tf) return;
-  const nb = bucket(tf, Number(bar.time), {
-    time: Number(bar.time), open: bar.open, high: bar.high, low: bar.low, close: bar.close, volume: bar.volume || 0,
-  });
+  const bt = Number(bar.time);
+  if (lastTickTime > 0 && bt >= bucketStart(tf, lastTickTime)) return;
+  const nb = {
+    time: bt, open: bar.open, high: bar.high, low: bar.low, close: bar.close, volume: bar.volume || 0,
+  };
+  buckets[tf].set(bt, nb);
   emit("market", { t: "bar", tf, bar: nb });
+}
+
+let lastTickTime = 0;
+
+function bucketStart(tf: "10s" | "1m", time: number): number {
+  const size = tf === "10s" ? 10 : 60;
+  return Math.floor(time / size) * size;
 }
 
 export function onTick(reqId: number, time: number, price: number, size: number): void {
@@ -154,6 +165,16 @@ export function onTick(reqId: number, time: number, price: number, size: number)
   tape.push(trade);
   if (tape.length > TAPE_MAX) tape.shift();
   emit("market", { t: "tape", trade });
+  lastTickTime = time;
+  for (const tf of ["10s", "1m"] as const) {
+    const bt = bucketStart(tf, time);
+    const cur = buckets[tf].get(bt);
+    const nb: Bar = cur
+      ? { ...cur, high: Math.max(cur.high, price), low: Math.min(cur.low, price), close: price, volume: cur.volume + size }
+      : { time: bt, open: price, high: price, low: price, close: price, volume: size };
+    buckets[tf].set(bt, nb);
+    emit("market", { t: "bar", tf, bar: nb });
+  }
 }
 
 export function onContractDetails(reqId: number, primary: string, validCsv: string): void {
