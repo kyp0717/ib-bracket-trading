@@ -67,9 +67,8 @@ knows (app modules live in `src/`, shared test helpers in `test/util/`):
 
 All builds are incremental. The full design is never known at the
 start, so every change runs the same loop, scoped to the delta in
-front of it. Each step is one narrow skill under `skills/sdlc/`
-(symlinked into `.agents/skills/` for discovery); the workflow lives
-here, not in the skills.
+front of it. Each step is one narrow skill under `.agents/skills/sdlc/`;
+the workflow lives here, not in the skills.
 
 1. **classify** — name the data shape first (a type in `wire.ts`),
    then the proof pair and the owning area. Borrowed from `build-test`
@@ -89,8 +88,8 @@ here, not in the skills.
    never edits it.
 
 Red at any point routes to `lesson-learned` before the loop continues.
-Skills: `skills/sdlc/{architect,interrogate,build-test,track-feature,validate}/`,
-plus `skills/lesson-learned/` outside the numbered steps.
+Skills: `.agents/skills/sdlc/{architect,interrogate,build-test,track-feature,validate}/`,
+plus `.agents/skills/lesson-learned/` outside the numbered steps.
 
 ## Two-Machine Workflow (woodlawn ↔ linden) — IMPORTANT
 
@@ -259,14 +258,14 @@ Two consequences to respect:
   file in `resource/lessons/` before the work is committed: what was
   seen, why it happened, the fix, and the rule that falls out of it. A
   red scenario without a lesson is not finished. Naming and the full
-  procedure live in the `lesson-learned` skill (`skills/lesson-learned/`):
+  procedure live in the `lesson-learned` skill (`.agents/skills/lesson-learned/`):
   `domain.<YYYYMMDD>.<title>.md` for knowledge about the outside world,
   `edge.<YYYYMMDD>.<title>.md` for a case the happy path missed. Design
   decisions no scenario can express go into AGENTS.md, not into code
   comments or lesson files.
 - To add a scenario: copy a sibling scenario with the next number
   (execution order, not history), name the file after what it proves,
-  and follow the `build-test` skill (`skills/build-test/`): classify the
+  and follow the `build-test` skill (`.agents/skills/sdlc/build-test/`): classify the
   change to pick the proof pair, and write checks as one
   `pass(name)` / `fail(name, what-you-saw)` line whose name says what
   broke, reached through `waitFor` with a timeout. Never sleep and
