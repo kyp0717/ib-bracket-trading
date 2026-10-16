@@ -32,7 +32,9 @@ try {
       railTop: rail.top,
       ordersTop: orders.top,
       subheadGone: document.querySelector('.ch-subhead') === null,
-      sizeInHead: document.querySelector('.ch-head #ch-size') !== null,
+      formOrder: [...document.getElementById('ch-form')!.children].map((e) => e.id).join(','),
+      sizeOptions: [...document.querySelectorAll('#ch-size option')].map((o) => (o as HTMLOptionElement).value).join(','),
+      switchBtnText: document.getElementById('ch-switch-btn')!.textContent ?? '',
       wmText: wm!.textContent ?? '',
       wmInChart: document.getElementById('ch-second')!.contains(wm),
       wmCenterX: (wmBox.left + wmBox.right) / 2,
@@ -42,8 +44,13 @@ try {
   });
   if (m.subheadGone) pass('second header removed');
   else fail('second header removed', '.ch-subhead still present');
-  if (m.sizeInHead) pass('size buttons live in the top header');
-  else fail('size buttons live in the top header', 'no #ch-size inside .ch-head');
+  if (m.formOrder === 'ch-input,ch-size,ch-switch-btn')
+    pass('size dropdown sits between ticker input and switch icon');
+  else fail('size dropdown sits between ticker input and switch icon', 'order=' + m.formOrder);
+  if (m.sizeOptions === '10,100,500') pass('size dropdown offers 10 100 500');
+  else fail('size dropdown offers 10 100 500', 'options=' + m.sizeOptions);
+  if (m.switchBtnText.length > 0 && !/[A-Za-z]/.test(m.switchBtnText)) pass('switch control is an icon');
+  else fail('switch control is an icon', 'text="' + m.switchBtnText + '"');
   if (Math.abs(m.chartTop - m.railTop) < 2) pass('bracket rail top aligns with chart top');
   else fail('bracket rail top aligns with chart top', `chart=${m.chartTop} rail=${m.railTop}`);
   if (Math.abs(m.chartTop - m.ordersTop) < 2) pass('order rail top aligns with chart top');

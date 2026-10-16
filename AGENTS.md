@@ -50,8 +50,10 @@ knows (app modules live in `src/`, shared test helpers in `test/util/`):
 ## GUI layout contract
 
 - One header only. The top header is the single control bar (ticker
-  input, position/pnl, size, connection pill). There is no second header
-  row: a second header stacks a row onto the right-hand side only,
+  form, position/pnl, connection pill). The ticker form holds the input,
+  the size dropdown (10/100/500), and the icon submit. There is no
+  second header row: a second header stacks a row onto the right-hand
+  side only,
   which pushes the bracket and order rails down while the chart top
   stays at the pane top, so chart and rails no longer share a top edge.
 - Bracket rail, order rail, and chart must keep aligned top edges at all

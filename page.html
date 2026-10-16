@@ -146,6 +146,18 @@ body {
 
 .ch-switch button:hover { border-color: var(--accent); }
 
+#ch-size {
+  padding: 1px 4px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--mono);
+  font-size: 0.72rem;
+}
+
+#ch-switch-btn { min-width: 2em; color: var(--accent); }
+
 .ch-banner {
   color: #f87171;
   font-weight: 700;
@@ -211,8 +223,6 @@ body {
   padding-top: 18px;
   overflow: hidden;
 }
-
-.ch-head .tc-size { padding: 0; margin-left: auto; }
 
 .ch-head .tc-pos {
   position: absolute;
@@ -523,17 +533,16 @@ button.tc-col-head.active {
   <div class="ch-head">
     <form class="ch-switch" id="ch-form">
       <input id="ch-input" autocomplete="off" maxlength="8">
-      <button type="submit" id="ch-switch-btn">Switch</button>
+      <select id="ch-size">
+        <option value="10" selected>10</option>
+        <option value="100">100</option>
+        <option value="500">500</option>
+      </select>
+      <button type="submit" id="ch-switch-btn" title="switch ticker">&#10148;</button>
     </form>
     <div class="tc-pos" id="ch-pos">
       <span id="ch-pos-shares">POSITION: 0</span>
       <span id="ch-pos-pl">PNL: $0.00</span>
-    </div>
-    <div class="tc-size" id="ch-size">
-      <span class="tc-size-label">SIZE:</span>
-      <button class="tc-size-btn active" data-qty="1" type="button">1</button>
-      <button class="tc-size-btn" data-qty="10" type="button">10</button>
-      <button class="tc-size-btn" data-qty="100" type="button">100</button>
     </div>
     <span class="td-feedback" id="ch-feedback"></span>
     <span class="pill" id="conn-pill"><span class="dot wait" id="conn-dot"></span><span id="conn-text">connecting</span></span>
@@ -600,7 +609,7 @@ let bracket = null;        // server snapshot: current bracket or null
 let bracketActive = false;
 let entryLocked = false;
 let cancelInFlight = false;
-let qty = 1;
+let qty = 10;
 let tf = '10s';
 let bars = { '10s': new Map(), '1m': new Map(), '1d': new Map() };
 let tapeRows = [];
@@ -1268,11 +1277,8 @@ $('confirmYes').addEventListener('click', async () => {
   }
 });
 
-$('ch-size').addEventListener('click', (ev) => {
-  const btn = ev.target.closest('.tc-size-btn');
-  if (!btn) return;
-  qty = parseInt(btn.dataset.qty, 10);
-  document.querySelectorAll('#ch-size .tc-size-btn').forEach((b) => b.classList.toggle('active', b === btn));
+$('ch-size').addEventListener('change', () => {
+  qty = parseInt($('ch-size').value, 10);
   $('ch-feedback').textContent = 'size ' + qty;
 });
 $('ch-tf').addEventListener('click', (ev) => {
