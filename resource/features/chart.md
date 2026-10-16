@@ -45,3 +45,6 @@ updates over `/market`.
   second; measuring rail alignment before the first sync run can show
   a false mismatch.
 - The watermark is pointer-events none; it never eats drags.
+- Indicator values (`ch-ind-vwap`, `ch-ind-ema9`) render only on the
+  1m timeframe; on 10s and 1d the tag hides and the values are empty
+  (lesson: edge.20261016.indicators-render-only-on-one-minute).
