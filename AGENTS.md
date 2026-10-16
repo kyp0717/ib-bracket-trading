@@ -219,9 +219,10 @@ Two consequences to respect:
   `edge.<YYYYMMDD>.<title>.md` for a case the happy path missed. Design
   decisions no scenario can express go into AGENTS.md, not into code
   comments or lesson files.
-- To add a scenario: copy a sibling scenario into the right phase
-  folder with the next number, name the file after what it proves, and
-  follow the check pattern: one story per file, every assertion is one
+- To add a scenario: copy a sibling scenario with the next number
+  (execution order, not history), name the file after what it proves,
+  and follow the `build-test` skill (`skills/build-test/`): classify the
+  change to pick the proof pair, and write checks as one
   `pass(name)` / `fail(name, what-you-saw)` line whose name says what
   broke, reached through `waitFor` with a timeout. Never sleep and
   hope, never console.log and eyeball.
