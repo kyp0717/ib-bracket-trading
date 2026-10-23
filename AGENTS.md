@@ -57,8 +57,7 @@ knows (app modules live in `src/`):
   which pushes the bracket and order rails down while the chart top
   stays at the pane top, so chart and rails no longer share a top edge.
 - Bracket rail, order rail, and chart must keep aligned top edges at all
-  viewport sizes. `archive/test-legacy/web-ui/09-header-layout.ts`
-  asserted this.
+  viewport sizes. A layout drive must prove this after any header change.
 - The ticker input doubles as the viewed-symbol indicator: it always
   shows the current symbol and submits a new one. The chart carries a
   large low-opacity watermark of the symbol so a glance or a screenshot
@@ -108,8 +107,8 @@ work must transfer cleanly between them (copied from
 - **Per-machine state stays out of git** and must have documented
   recreate steps. For this repo that means: IB Gateway / TWS login
   state, `node_modules`, and any local paper-account positions left
-  over from test runs. Audits and evidence no longer live on either
-  machine; they live in S3 (see "Shared S3 store" below).
+  over from verification runs. The audit trail lives in S3 (see
+  "Shared S3 store" below); drive evidence stays local to the run.
 - When a machine-specific fact comes up for this project (a port that
   only listens on one host, a different IB port number, a different
   checkout path), record it in this file under "Machine-specific facts"
@@ -117,25 +116,19 @@ work must transfer cleanly between them (copied from
 
 ## Shared S3 store
 
-Audits and evidence follow the operator between machines. Bucket
+The audit trail follows the operator between machines. Bucket
 `amzn-s3-trading-audit`, keys prefixed by the short hostname
 (`os.hostname()`), never hardcoded:
 
 - Audit trail: `audit/<host>/<YYYY-MM-DD>/chunk-<epoch>-<n>.log`,
   written by `log.ts` in 2 second flushes (sync flush on SIGTERM/SIGINT).
   The app keeps only an in-memory ring of the last 2000 lines, served
-  at `GET /api/audit` for tests and debugging.
-- Evidence: the archived suite wrote screenshots as
-  `evidence/<host>/<area>-<phase>-<nn>-<story>-<what>.png` and runner
-  app logs as `evidence/<host>/<area>-app-<timestamp>.log`, falling
-  back to `archive/test-legacy/evidence/` locally when credentials
-  were missing. The verify skill keeps its own local evidence under
-  `.pi/skills/verify-bracket-web/evidence/` instead.
+  at `GET /api/audit` for verification and debugging.
 
 Recreate steps on each machine: AWS CLI v2 (ls-trader installs it at
 `~/.local/bin/aws`), then export `TRADER_S3_ACCESS_KEY` and
 `TRADER_S3_SECRET_KEY` (copied from `ls-trader/.env`) plus optionally
-`TRADER_S3_REGION` before starting the app or the suite. The bucket
+`TRADER_S3_REGION` before starting the app. The bucket
 name is fixed in `s3.ts` (`BRACKET_S3_BUCKET` overrides it); the
 ls-trader `TRADER_S3_BUCKET` variable is intentionally ignored here.
 
@@ -145,8 +138,7 @@ ls-trader `TRADER_S3_BUCKET` variable is intentionally ignored here.
   IB Gateway **live** is 4001 on both machines.
 - linden: IB Gateway **paper** listens on port 4002 (not 4001). The earlier
   note that 4002 was a live port was wrong; it is paper and safe for
-  destructive scenarios. The archived suite runs here as
-  `bash archive/test-legacy/run-all.sh 4002`.
+  destructive drives.
 - linden: the IB Gateway paper socket drops occasionally mid-run (a few
   times per hour). The app reconnects and reconciles on its own; expect
   extra `reconcile` lines in the audit trail during a run and do not treat
@@ -165,7 +157,7 @@ the paper gateway listening on 4002). TWS ports are still unconfirmed.
 The 2026-10-08 remap note claimed 7497 live and 7500 paper; the
 operator now reports 7497 as TWS paper (the vendor default). Confirm
 each TWS port with a paper login before treating either as safe for
-destructive scenarios.
+destructive drives.
 
 Two consequences to respect:
 - The app defaults to `--ibport 4001`, which is LIVE. Every paper run
@@ -186,19 +178,14 @@ its `features/` directory, and local evidence under its `evidence/`
 directory that survives cleanup. To verify a change: launch, doctor,
 drive the mapped feature, capture evidence, clean up.
 
-The pre-poteto scenario suite is archived, not deleted:
-`archive/test-legacy/` holds the runners, scenarios, and helpers, and
-`archive/features-legacy/` holds the old feature inventory. Treat them
-as proven recipes to mine when a new drive needs a pattern (SSE
-capture, an independent IB probe on clientId 91, chained bracket
-scenarios). They are excluded from the static gate and are not the
-active path; to run one anyway, call it by its new path during regular
-hours, e.g. `bash archive/test-legacy/run-all.sh 4002`.
+The pre-poteto scenario suite is archived, not deleted, under
+`archive/`. The verify skill's SKILL.md says what is there and when to
+mine it.
 
 - The static gate stays: `tsc --noEmit` over `src/` and `scanner/`
   against the wire types in `wire.ts`. Run it before any verification
   pass; a type break fails in seconds, gateway closed.
-- Paper endpoints only, both safe for destructive scenarios: IB Gateway
+- Paper endpoints only, both safe for destructive drives: IB Gateway
   paper is 4002 (confirmed on both machines). TWS paper is unconfirmed
   (operator believes 7497). 4001 is IB Gateway LIVE and no verification
   path may ever point at it.
@@ -242,7 +229,7 @@ hours, e.g. `bash archive/test-legacy/run-all.sh 4002`.
 - The GUI is ugly by default. Function first; a plain dark page is
   enough
 
-## Environment facts that shape the tests
+## Environment facts that shape verification
 
 - TWS reports API cancels as status `ApiCancelled`, not `Cancelled`.
   Treat it as a terminal cancel everywhere
@@ -260,7 +247,7 @@ hours, e.g. `bash archive/test-legacy/run-all.sh 4002`.
   reconcile must buffer orphans (fixed in bracket.ts, lesson in
   resource/lessons/)
 - TWS sometimes sits on an order batch for tens of seconds (2109
-  warning). Fill scenario timeouts are 60s, not 30s
+  warning). Fill check timeouts are 60s, not 30s
 - Orders placed by clientId 90 can only be seen and cancelled by
   clientId 90. A cleanup probe needs the same id as the app
 - `pkill -f "tsx server.ts"` matches your own shell if the string
@@ -283,7 +270,7 @@ hours, e.g. `bash archive/test-legacy/run-all.sh 4002`.
   boundary (an SSE stream, an HTTP response, a function that hands
   data to another module) gets a named type in `wire.ts` or at the
   function boundary, never `any` and never `Record<string,
-  unknown>`. The compiler runs before any suite; make it earn its
+  unknown>`. The compiler runs before any verification pass; make it earn its
   keep. When a shape changes, change the type first and let the
   compiler point at every consumer. This is the Pocock rule: the
   type check is the cheapest red light you have.
