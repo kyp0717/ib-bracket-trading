@@ -1,4 +1,4 @@
-import { upload, evidenceKey, host } from '../../src/s3';
+import { upload, evidenceKey, host } from '../../../src/s3';
 
 const file = process.argv[2];
 if (file) {

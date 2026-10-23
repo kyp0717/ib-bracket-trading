@@ -1,5 +1,5 @@
 import { makeSuite, live, waitFor, quote } from '../util/suite';
-import type { Bar } from '../../src/wire';
+import type { Bar } from '../../../src/wire';
 import { guiPage, snap } from '../util/web';
 
 const { pass, fail, summary } = makeSuite('interface 04 indicators on one minute');

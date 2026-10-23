@@ -1,6 +1,6 @@
 import { readFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import type { AuditRecent, Bar, Bracket, BracketSnapshot, ConnState, DepthBook, Trade } from '../../src/wire';
+import type { AuditRecent, Bar, Bracket, BracketSnapshot, ConnState, DepthBook, Trade } from '../../../src/wire';
 
 export const APP = process.env.E2E_APP_ADDR || 'http://127.0.0.1:8080';
 
@@ -178,7 +178,7 @@ export const r2 = (x: number) => Math.round(x * 100) / 100;
 export function evidencePath(metaUrl: string, name: string, ext = 'png'): string {
   const dir = new URL('../evidence/', import.meta.url);
   mkdirSync(dir, { recursive: true });
-  const file = fileURLToPath(metaUrl).split('/test/')[1].replace(/\.ts$/, '');
+  const file = fileURLToPath(metaUrl).split('/test-legacy/')[1].replace(/\.ts$/, '');
   const key = file.replace(/\//g, '-');
   return fileURLToPath(new URL(`${key}-${name}.${ext}`, dir));
 }

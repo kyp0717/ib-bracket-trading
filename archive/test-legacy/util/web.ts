@@ -24,7 +24,7 @@ export async function guiPage(symbol: string) {
 
 export async function snap(page: Page, metaUrl: string, name: string): Promise<void> {
   const { evidencePath } = await import('./suite');
-  const { upload, evidenceKey } = await import('../../src/s3');
+  const { upload, evidenceKey } = await import('../../../src/s3');
   const local = evidencePath(metaUrl, name);
   const buf = await page.screenshot();
   const uri = await upload(evidenceKey(local), buf);

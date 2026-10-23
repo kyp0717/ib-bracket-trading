@@ -1,5 +1,5 @@
 import { makeSuite, live, waitFor, quote } from '../util/suite';
-import { host, list, download } from '../../src/s3';
+import { host, list, download } from '../../../src/s3';
 
 const { pass, fail, summary } = makeSuite('ticks 05 audit reaches s3');
 const { st, close } = live();

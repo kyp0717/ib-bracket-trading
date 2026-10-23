@@ -5,9 +5,8 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
 
 IB_PORT="${1:-4002}"
-LOG=/tmp/order-at-server-e2e.log
+LOG=/tmp/depth-e2e.log
 export E2E_APP_ADDR="${E2E_APP_ADDR:-http://127.0.0.1:8080}"
-export E2E_IB_PORT="$IB_PORT"
 
 start_app() {
   pkill -f "server[.]ts" 2>/dev/null
@@ -28,14 +27,14 @@ wait_app() {
 }
 
 doctor() {
-  if ! npx tsx test/health-check/health-check.ts "$IB_PORT"; then
+  if ! npx tsx archive/test-legacy/health-check/health-check.ts "$IB_PORT"; then
     echo "health check failed, suites not run"
     pkill -f "server[.]ts" 2>/dev/null
     exit 1
   fi
 }
 
-EV=test/evidence
+EV=archive/test-legacy/evidence
 
 run_files() {
   local rc=0
@@ -49,9 +48,9 @@ run_files() {
 
 save_evidence() {
   mkdir -p "$EV"
-  local f="$EV/order-at-server-app-$(date +%Y%m%d-%H%M%S).log"
+  local f="$EV/depth-app-$(date +%Y%m%d-%H%M%S).log"
   cp "$LOG" "$f"
-  npx tsx test/aws-s3/upload-evidence.ts "$f" 2>/dev/null || true
+  npx tsx archive/test-legacy/aws-s3/upload-evidence.ts "$f" 2>/dev/null || true
   echo "evidence saved under $EV"
 }
 
@@ -61,14 +60,14 @@ wait_app
 doctor
 echo "health check ok"
 
-echo "== api scenarios =="
-run_files test/order-at-server/[0-9]*.ts
+echo "== scenarios =="
+run_files archive/test-legacy/depth/[0-9]*.ts
 p1=$?
 
 pkill -f "server[.]ts" 2>/dev/null
 
 echo "== summary =="
-[ $p1 -eq 0 ] && echo "api: pass" || echo "api: FAIL"
+[ $p1 -eq 0 ] && echo "scenarios: pass" || echo "scenarios: FAIL"
 if [ $p1 -ne 0 ]; then
   save_evidence
 fi
