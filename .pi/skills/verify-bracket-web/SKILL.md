@@ -67,7 +67,7 @@ bash .pi/skills/verify-bracket-web/bin/doctor.sh
 
 It reports four facts without mutating anything: the app process group
 is alive, `/status` answers, the IB paper port is accepting connections,
-and the repo health-check verdict (`connected` and `reconciled`).
+and `/status` reports `connected` and `reconciled`.
 
 Gate rules:
 
@@ -86,10 +86,8 @@ instance this run did not start.
 ## Drive
 
 Harness: Playwright through the repo's `playwright-core` devDependency,
-chromium from `~/.cache/ms-playwright/chromium-1243`. The repo's own
-`test/util/web.ts` uses the same launcher, so a browser is already
-provisioned. Stable handles are element ids, never coordinates or tab
-order.
+chromium from `~/.cache/ms-playwright/chromium-1243`. Stable handles are
+element ids, never coordinates or tab order.
 
 Proof standard from AGENTS.md: every behavior needs two proofs. First
 the data proof (a value that crosses the wire via `/status`,
@@ -127,11 +125,10 @@ screen. For every driven feature save:
   response, or an SSE message) quoted in the run output.
 
 Evidence lands in `.pi/skills/verify-bracket-web/evidence/`, which is
-gitignored and survives cleanup. For a full regression sweep the repo
-convention is S3 under `evidence/<host>/...` in `amzn-s3-trading-audit`
-with a local fallback to `test/evidence/` when credentials are missing;
-that path is used by the repo's own scenario runners, not by this
-skill's smoke driver.
+gitignored and survives cleanup. The legacy suite wrote evidence to S3
+under `evidence/<host>/...` in `amzn-s3-trading-audit` with a local
+fallback; that convention belongs to the archived runners, not to this
+skill.
 
 Verify side effects alongside what is visible: an activation must show
 an `activate` line in `/api/audit` and the order rail status cell, not
@@ -170,3 +167,12 @@ All scripts are executable and live in `.pi/skills/verify-bracket-web/bin/`:
 The maintained feature map lives in
 `.pi/skills/verify-bracket-web/features/`. Read the index before
 driving, then the matching feature file as the recipe.
+
+## Legacy suite
+
+The pre-poteto scenario suite is archived, not deleted:
+`archive/test-legacy/` holds the runners and scenarios,
+`archive/features-legacy/` holds the old feature inventory. Treat both
+as proven recipe references. They are excluded from the static gate and
+are not the active path; if one must run, call it by its new path, e.g.
+`bash archive/test-legacy/run-all.sh 4002` during regular hours.

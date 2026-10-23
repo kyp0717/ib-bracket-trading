@@ -24,7 +24,7 @@ this app is built:
   one-line definition next to it.
 
 How the app is put together, in pipeline terms the developer already
-knows (app modules live in `src/`, shared test helpers in `test/util/`):
+knows (app modules live in `src/`):
 
 - `src/server.ts` is the intake. It serves one static page and a handful of
   POST endpoints. Each endpoint calls straight into the state modules.
@@ -57,7 +57,8 @@ knows (app modules live in `src/`, shared test helpers in `test/util/`):
   which pushes the bracket and order rails down while the chart top
   stays at the pane top, so chart and rails no longer share a top edge.
 - Bracket rail, order rail, and chart must keep aligned top edges at all
-  viewport sizes. `test/web-ui/09-header-layout.ts` asserts this.
+  viewport sizes. `archive/test-legacy/web-ui/09-header-layout.ts`
+  asserted this.
 - The ticker input doubles as the viewed-symbol indicator: it always
   shows the current symbol and submits a new one. The chart carries a
   large low-opacity watermark of the symbol so a glance or a screenshot
@@ -67,33 +68,28 @@ knows (app modules live in `src/`, shared test helpers in `test/util/`):
 
 All builds are incremental. The full design is never known at the
 start, so every change runs the same loop, scoped to the delta in
-front of it. Each step is one narrow skill under `.agents/skills/sdlc/`;
-the workflow lives here, not in the skills.
+front of it. Working style comes from the poteto-mode playbooks; the
+repo-specific steps live here.
 
 0. **classify** — first decide the mode: a **change** (new behavior)
    or a **defect** (existing behavior violates its contract). Defects
    reproduce on the same surface and root-cause to the mechanism
    before step 1; the root cause becomes a fixed constraint on the
    design. Then name the data shape (a type in `wire.ts`), the proof
-   pair, and the owning area. Borrowed from `build-test` step 0; no
-   new skill.
+   pair, and the owning area.
 1. **design** — sketch two or three candidate shapes, judge against
    this file's contracts, pick one, record why the losers lost.
 2. **interrogate** — gated, not fixed: only on ties, or when the change
    touches order paths, live account rules, or a wire type.
 3. **implement** — plain work, smallest change that fits the pick.
-4. **test** (`build-test`) — author the proof pair into the numbered
-   chain, and name the feature file in `resource/features/` that must
-   be updated in the same commit.
-5. **track-feature** — sync `resource/features/` with what shipped.
-   Writes the inventory only; never edits scenarios.
-6. **validate** — doctor, drive the changed area's feature file, prove
-   with pass/fail lines and S3 evidence, end flat. Reads the map,
-   never edits it.
+4. **test** — author the proof pair (data proof first, then visual) as
+   drives in `.pi/skills/verify-bracket-web/`, and update that skill's
+   feature map in the same commit.
+5. **validate** — doctor, drive the changed feature, prove with
+   pass/fail lines and saved evidence, end flat.
 
-Red at any point routes to `lesson-learned` before the loop continues.
-Skills: `.agents/skills/sdlc/{design,interrogate,build-test,track-feature,validate}/`,
-plus `.agents/skills/lesson-learned/` outside the numbered steps.
+Red at any point writes a lesson under `resource/lessons/` before the
+loop continues.
 
 ## Two-Machine Workflow (woodlawn ↔ linden) — IMPORTANT
 
@@ -129,11 +125,12 @@ Audits and evidence follow the operator between machines. Bucket
   written by `log.ts` in 2 second flushes (sync flush on SIGTERM/SIGINT).
   The app keeps only an in-memory ring of the last 2000 lines, served
   at `GET /api/audit` for tests and debugging.
-- Evidence: `evidence/<host>/<area>-<phase>-<nn>-<story>-<what>.png`
-  for screenshots (same names as before) and
-  `evidence/<host>/<area>-app-<timestamp>.log` for runner app logs.
-  Missing credentials fall back to `test/evidence/` locally and say so
-  in the console, so evidence is never lost.
+- Evidence: the archived suite wrote screenshots as
+  `evidence/<host>/<area>-<phase>-<nn>-<story>-<what>.png` and runner
+  app logs as `evidence/<host>/<area>-app-<timestamp>.log`, falling
+  back to `archive/test-legacy/evidence/` locally when credentials
+  were missing. The verify skill keeps its own local evidence under
+  `.pi/skills/verify-bracket-web/evidence/` instead.
 
 Recreate steps on each machine: AWS CLI v2 (ls-trader installs it at
 `~/.local/bin/aws`), then export `TRADER_S3_ACCESS_KEY` and
@@ -148,7 +145,8 @@ ls-trader `TRADER_S3_BUCKET` variable is intentionally ignored here.
   IB Gateway **live** is 4001 on both machines.
 - linden: IB Gateway **paper** listens on port 4002 (not 4001). The earlier
   note that 4002 was a live port was wrong; it is paper and safe for
-  destructive scenarios. Run the suite here as `bash test/run-all.sh 4002`.
+  destructive scenarios. The archived suite runs here as
+  `bash archive/test-legacy/run-all.sh 4002`.
 - linden: the IB Gateway paper socket drops occasionally mid-run (a few
   times per hour). The app reconnects and reconciles on its own; expect
   extra `reconcile` lines in the audit trail during a run and do not treat
@@ -171,7 +169,7 @@ destructive scenarios.
 
 Two consequences to respect:
 - The app defaults to `--ibport 4001`, which is LIVE. Every paper run
-  must pass the paper port explicitly, and nothing under `test/` may
+  must pass the paper port explicitly, and no verification path may
   ever be pointed at 4001.
 - While the app points at a live account it places real orders on
   activation, and the restart reconcile sweep cancels unadopted
@@ -180,106 +178,57 @@ Two consequences to respect:
 
 ## Testing and validation
 
-- `run-all.sh` starts with the static gate: `tsc --noEmit` over the
-  app and every test against the wire types in `wire.ts`. A type break
-  fails in seconds, gateway closed, and no suite starts. Then each
-  area runner runs in turn.
+The active verification path is the poteto-mode skill
+`.pi/skills/verify-bracket-web/`. It owns launch (hostname-mapped paper
+port, single-instance refusal), doctor (process, HTTP, IB port,
+connected+reconciled gate), Playwright drives, the feature map under
+its `features/` directory, and local evidence under its `evidence/`
+directory that survives cleanup. To verify a change: launch, doctor,
+drive the mapped feature, capture evidence, clean up.
+
+The pre-poteto scenario suite is archived, not deleted:
+`archive/test-legacy/` holds the runners, scenarios, and helpers, and
+`archive/features-legacy/` holds the old feature inventory. Treat them
+as proven recipes to mine when a new drive needs a pattern (SSE
+capture, an independent IB probe on clientId 91, chained bracket
+scenarios). They are excluded from the static gate and are not the
+active path; to run one anyway, call it by its new path during regular
+hours, e.g. `bash archive/test-legacy/run-all.sh 4002`.
+
+- The static gate stays: `tsc --noEmit` over `src/` and `scanner/`
+  against the wire types in `wire.ts`. Run it before any verification
+  pass; a type break fails in seconds, gateway closed.
 - Paper endpoints only, both safe for destructive scenarios: IB Gateway
   paper is 4002 (confirmed on both machines). TWS paper is unconfirmed
-  (operator believes 7497). 4001 is IB Gateway LIVE and must never host
-  a test run or a scenario. Full suite (regular hours only):
-  `bash test/run-all.sh 4002` on linden or woodlawn.
-- Run the full suite only while the regular session is open and aim to
-  finish by 15:45 ET. Flatten uses a MKT order, and after the 16:00 ET
+  (operator believes 7497). 4001 is IB Gateway LIVE and no verification
+  path may ever point at it.
+- Drive order paths only while the regular session is open and finish
+  by 15:45 ET. Flatten uses a MKT order, and after the 16:00 ET
   close the gateway queues MKT orders for the next open while still
   accepting them. The app reports ok and the position silently
-  survives, which turns later scenarios red in confusing ways. See
+  survives. See
   resource/lessons/20261013-market-orders-are-limit-only-outside-regular-hours.md.
-- Each test area lives in its own folder under `test/`:
-  `initialization/`, `bracket/`, `depth/`, `ticks/`, `order-at-server/`,
-  `scanner/`, `web-ui/`, `health-check/`. Areas hold their
-  scenarios as flat numbered files directly in the folder; no `api/`
-  phase folder. Two subfolders remain because the runner treats them
-  specially: `bracket/reconnect/` (runs after the runner restarts the
-  app) and `bracket/web/` (behavior scenarios that drive the bracket
-  state machine through the browser and chain with the flat bracket
-  scenarios). Everything that proves presentation, layout, styling, and
-  rendering, whatever area feeds it, lives in `web-ui/`.
-  Shared helpers live in `test/util/`:
-  `suite.ts` (pass/fail, waits, SSE state, typed API helpers, evidence
-  paths), `web.ts` (browser setup and screenshots), `sse.ts`
-  (EventSource replacement), and `ib-probe.ts` (independent IB client
-  for server-side checks). All test code is TypeScript; scenarios
-  run through `tsx`, and the static gate type-checks them on every run.
-- GUI testing uses Playwright, through the `playwright-core`
-  devDependency in `web.ts`. Every GUI behavior (modals, buttons,
-  drag feedback, rendered panels) is proven by driving the real page
-  in a browser, never by reading page source. Playwright is the only
-  way the web layer is verified; if a change touches page.html, a web
-  scenario must cover it.
+- GUI behavior is proven by driving the real page with Playwright,
+  never by reading page source. If a change touches page.html, a web
+  drive must cover it.
 - Every new behavior needs two proofs, in this order. First the data
-  proof: an api scenario asserting the values that cross the wire
-  (SSE payload or HTTP response). Then the visual proof: a web
-  scenario asserting the same values appear in the rendered page.
-  One proof without the other is not done: data without the visual
-  check can render wrong and pass, and a visual check without the
-  data check cannot say whether the app or the rendering lied.
-- Running the proof is the `validate` skill: doctor first, drive the
-  changed area's feature file in `resource/features/`, end flat. The
-  inventory itself is written only by `track-feature`; scenarios and
-  feature files connect through shared ids and routes, resolved with
-  graft on demand, never through stored links.
-- Scenarios are one numbered file per story, flat inside the area:
-  `test/<area>/<nn>-<story>.ts`. One story per file: a scenario proves
-  exactly one behavior and the file name says which. Numbers fix
-  execution order, because scenarios chain when one leaves live state
-  for the next. The runner
-  loops every scenario file and keeps going after a failure, so one red
-  scenario never hides the rest. A scenario exits nonzero on any failed
-  check.
-- Design decisions no scenario can express, carried here so they
+  proof: the values that cross the wire (SSE payload or HTTP
+  response). Then the visual proof: the same values in the rendered
+  page. One proof without the other is not done.
+- Every check is one named pass/fail line reached through a wait with
+  a timeout. Never sleep and hope, never console.log and eyeball.
+- Design decisions no drive can express, carried here so they
   survive renames: FILLED stands in for PARTIAL in e2e because partial
   fills cannot be forced reliably on paper, and the FILLED path
   exercises the same entry-lock code. Move-during-canceling is refused
   rather than queued and stays untested because the refusal window is
-  milliseconds. Scenarios chain: a scenario that needs a live bracket
-  waits for the one the previous scenario left, and the chain ends with
-  an explicit deactivate, so the book is always clean between areas.
-- Every runner starts with the doctor step:
-  `npx tsx test/health-check/health-check.ts <port>` proves the IB
-  port is open, the app answers HTTP, and the app is connected and
-  reconciled before any scenario runs. If the doctor fails, nothing
-  starts.
-- Evidence lives in the S3 bucket under `evidence/<host>/` (see
-  "Shared S3 store"). Every
-  artifact is named after the test that produced it, so a filename is
-  all you need to trace back. Screenshots:
-  `test/<area>/<path>/<nn>-<story>.ts` produces
-  `<area>-<path>-<nn>-<story>-<what>.png`, generated automatically
-  from the scenario file path, where `<path>` is empty for flat area
-  scenarios. Example:
-  `test/web-ui/03-size-dropdown.ts` on abort writes
-  `evidence/<host>/web-ui-03-size-dropdown-aborted.png`,
-  and `test/bracket/web/03-locked-entry.ts` writes
-  `evidence/<host>/bracket-web-03-locked-entry-aborted.png`. App logs:
-  `<area>-app-<timestamp>.log` from the runner. To diagnose a red
-  scenario, pull its evidence object from S3 first.
+  milliseconds.
 - Every issue found in a run, especially edge cases, gets a lesson
-  file in `resource/lessons/` before the work is committed: what was
-  seen, why it happened, the fix, and the rule that falls out of it. A
-  red scenario without a lesson is not finished. Naming and the full
-  procedure live in the `lesson-learned` skill (`.agents/skills/lesson-learned/`):
-  `domain.<YYYYMMDD>.<title>.md` for knowledge about the outside world,
-  `edge.<YYYYMMDD>.<title>.md` for a case the happy path missed. Design
-  decisions no scenario can express go into AGENTS.md, not into code
-  comments or lesson files.
-- To add a scenario: copy a sibling scenario with the next number
-  (execution order, not history), name the file after what it proves,
-  and follow the `build-test` skill (`.agents/skills/sdlc/build-test/`): classify the
-  change to pick the proof pair, and write checks as one
-  `pass(name)` / `fail(name, what-you-saw)` line whose name says what
-  broke, reached through `waitFor` with a timeout. Never sleep and
-  hope, never console.log and eyeball.
+  file in `resource/lessons/` before the work is committed, per the
+  lesson-learned skill: `domain.<YYYYMMDD>.<title>.md` for knowledge
+  about the outside world, `edge.<YYYYMMDD>.<title>.md` for a case the
+  happy path missed. Design decisions no drive can express go into
+  AGENTS.md, not into code comments or lesson files.
 - Never leave a position or a resting bracket on the paper account when
   a session ends. Flatten and deactivate before stopping.
 
@@ -351,10 +300,7 @@ Two consequences to respect:
   append-only S3 audit trail (`audit/<host>/<date>/chunk-*.log`).
 - Wire types live in `wire.ts`. Every payload that crosses an SSE
   stream or an HTTP response is declared there, the app compiles
-  against them, and `npx tsc --noEmit` (the first step of
-  `test/run-all.sh`) fails the run on any drift. Tests convert to
-  TypeScript against these types last; until then they share the
-  definitions by convention, not by import.
+  against them, and `npx tsc --noEmit` fails the run on any drift.
 
 ## Acronyms
 

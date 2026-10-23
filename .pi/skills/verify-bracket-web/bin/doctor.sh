@@ -2,7 +2,6 @@
 set -uo pipefail
 
 SKILL="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-ROOT="$(cd "$SKILL/../../.." && pwd)"
 RUN="$SKILL/.run"
 
 [ -f "$RUN/pid" ] || { echo "FAIL no launched app: run launch.sh first"; exit 1; }
@@ -33,7 +32,11 @@ else
   echo "FAIL ib paper port $PAPER not listening: start IB Gateway paper and log in"
 fi
 
-echo "== repo health-check (connected + reconciled gate) =="
-cd "$ROOT"
-E2E_APP_ADDR="http://127.0.0.1:$WEB" npx tsx test/health-check/health-check.ts "$PAPER" \
-  || echo "gate: order/data features are blocked until connected and reconciled"
+echo "== connected and reconciled gate =="
+if [ -z "$STATUS" ]; then
+  echo "FAIL gate: no /status payload to judge"
+elif printf '%s' "$STATUS" | node -e 'let s="";process.stdin.on("data",(d)=>s+=d).on("end",()=>{const j=JSON.parse(s);if(j.connected&&j.reconciled){console.log(`PASS connected and reconciled (${j.ibProg} ${j.ibPort} ${j.ibAcct} id ${j.clientId})`)}else{console.log(`FAIL connected/reconciled: ${s}`);process.exit(1)}})'; then
+  :
+else
+  echo "gate: order/data features are blocked until connected and reconciled"
+fi
