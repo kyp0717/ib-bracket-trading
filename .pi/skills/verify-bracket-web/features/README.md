@@ -7,12 +7,12 @@ use the matching feature file as the recipe.
 ## Baseline preconditions
 
 - Launch with `bash .pi/skills/verify-bracket-web/bin/launch.sh`, which
-  maps `hostname` to the paper port (woodlawn 4001, linden 4002) and
+  maps `hostname` to the paper port (4002 on both machines) and
   refuses to start if port 8080 is already owned.
 - Run `bash .pi/skills/verify-bracket-web/bin/doctor.sh` and require
   `connected:true, reconciled:true` before driving any order or data
   feature. Without it, only `render` and `header-ticker-form` apply.
-- Paper port only. Nothing here may point at linden 4001 (LIVE).
+- Paper port only. Nothing here may point at 4001 (IB Gateway LIVE).
 - Fill paths run only inside 09:30-15:45 ET. Outside that window a MKT
   order queues for the next open and the position silently survives.
 - Start and end every pass flat: no resting bracket, no position.

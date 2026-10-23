@@ -8,7 +8,7 @@ mkdir -p "$RUN"
 
 HOST="$(hostname | cut -d. -f1)"
 case "$HOST" in
-  woodlawn) PAPER=4001 ;;
+  woodlawn) PAPER=4002 ;;
   linden)   PAPER=4002 ;;
   *)
     echo "unknown host '$HOST': add its paper port to $0 before driving" >&2

@@ -3,7 +3,7 @@ import { presets } from '../../scanner/presets';
 import { runScan } from '../../scanner/scan';
 import { rank } from '../../scanner/rank';
 
-const IB_PORT = Number(process.env.E2E_IB_PORT || 4001);
+const IB_PORT = Number(process.env.E2E_IB_PORT || 4002);
 
 const { pass, fail, summary } = makeSuite('api 01 universe finds candidates');
 

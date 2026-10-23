@@ -4,7 +4,7 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
 
-IB_PORT="${1:-4001}"
+IB_PORT="${1:-4002}"
 LOG=/tmp/ticks-e2e.log
 export E2E_APP_ADDR="${E2E_APP_ADDR:-http://127.0.0.1:8080}"
 

@@ -144,6 +144,8 @@ ls-trader `TRADER_S3_BUCKET` variable is intentionally ignored here.
 
 ## Machine-specific facts
 
+- woodlawn: IB Gateway **paper** listens on port 4002, same as linden.
+  IB Gateway **live** is 4001 on both machines.
 - linden: IB Gateway **paper** listens on port 4002 (not 4001). The earlier
   note that 4002 was a live port was wrong; it is paper and safe for
   destructive scenarios. Run the suite here as `bash test/run-all.sh 4002`.
@@ -154,18 +156,18 @@ ls-trader `TRADER_S3_BUCKET` variable is intentionally ignored here.
 
 ## IB endpoints, live vs paper
 
-| Program    | Live | Paper |
-|------------|------|-------|
-| IB Gateway | 4001 | 4002  |
-| TWS        | 7497 | 7500  |
+| Program    | Live        | Paper                        |
+|------------|-------------|------------------------------|
+| IB Gateway | 4001        | 4002                         |
+| TWS        | unconfirmed | 7497 (believed, unconfirmed) |
 
-IB Gateway ports are the vendor defaults, confirmed on linden
-2026-10-14: 4001 answered as a real, live account; 4002 is paper. TWS
-ports on this setup were remapped on 2026-10-08 (vendor defaults are
-7496 live and 7497 paper; here 7497 is live and 7500 is paper, per the
-tradehub-go setup notes). An older line in this file called 7497 TWS
-paper; that predates the remap. Treat the TWS ports as unconfirmed
-until a paper login is tested on each machine.
+IB Gateway ports are confirmed on both machines: 4001 is live, 4002 is
+paper (confirmed on linden 2026-10-14 and on woodlawn 2026-10-23 with
+the paper gateway listening on 4002). TWS ports are still unconfirmed.
+The 2026-10-08 remap note claimed 7497 live and 7500 paper; the
+operator now reports 7497 as TWS paper (the vendor default). Confirm
+each TWS port with a paper login before treating either as safe for
+destructive scenarios.
 
 Two consequences to respect:
 - The app defaults to `--ibport 4001`, which is LIVE. Every paper run
@@ -183,11 +185,10 @@ Two consequences to respect:
   fails in seconds, gateway closed, and no suite starts. Then each
   area runner runs in turn.
 - Paper endpoints only, both safe for destructive scenarios: IB Gateway
-  paper is 4002 and TWS paper is 7500 on this setup (see "IB endpoints,
-  live vs paper" above; the TWS paper port is remapped and unconfirmed).
-  4001 is IB Gateway LIVE and must never host a test run or a scenario.
-  Full suite (regular hours only): `bash test/run-all.sh 4002` on
-  linden.
+  paper is 4002 (confirmed on both machines). TWS paper is unconfirmed
+  (operator believes 7497). 4001 is IB Gateway LIVE and must never host
+  a test run or a scenario. Full suite (regular hours only):
+  `bash test/run-all.sh 4002` on linden or woodlawn.
 - Run the full suite only while the regular session is open and aim to
   finish by 15:45 ET. Flatten uses a MKT order, and after the 16:00 ET
   close the gateway queues MKT orders for the next open while still

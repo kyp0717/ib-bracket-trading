@@ -1,7 +1,7 @@
 import { makeSuite, live, waitFor, quote, r2, activate } from '../util/suite';
 import { serverOrders } from '../util/ib-probe';
 
-const IB_PORT = Number(process.env.E2E_IB_PORT || 4001);
+const IB_PORT = Number(process.env.E2E_IB_PORT || 4002);
 
 const { pass, fail, summary } = makeSuite('api 01 bracket visible to second client');
 const { st, close } = live();

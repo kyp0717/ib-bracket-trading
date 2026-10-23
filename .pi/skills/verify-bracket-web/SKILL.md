@@ -13,13 +13,13 @@ or TWS over `--ibport` and places real orders on the paper account, so
 every drive below is scoped to the paper port for the machine it runs
 on.
 
-Two machines share this repo. The paper port differs, and the app
-default (`--ibport 4001`) is LIVE on linden. Never rely on the default.
+Two machines share this repo. The app default (`--ibport 4001`) is IB
+Gateway LIVE on every machine. Always pass the paper port explicitly.
 
-| host     | paper ibPort | live danger            |
-|----------|--------------|------------------------|
-| woodlawn | 4001         | keep the gateway paper |
-| linden   | 4002         | 4001 is LIVE           |
+| host     | paper ibPort | live ibPort |
+|----------|--------------|-------------|
+| woodlawn | 4002         | 4001        |
+| linden   | 4002         | 4001        |
 
 ## Launch
 

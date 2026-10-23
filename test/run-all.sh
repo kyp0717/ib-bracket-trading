@@ -5,7 +5,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 if [ -z "${1:-}" ]; then
-  echo "IB port required. 4002 is paper on linden, 4001 is paper on woodlawn, and 4001 is LIVE on linden. See AGENTS.md 'IB endpoints, live vs paper'."
+  echo "IB port required. 4002 is IB Gateway paper on both machines; 4001 is IB Gateway LIVE. See AGENTS.md 'IB endpoints, live vs paper'."
   exit 2
 fi
 PORT="$1"

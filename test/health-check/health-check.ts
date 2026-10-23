@@ -2,7 +2,7 @@ import { connect } from 'node:net';
 import { getStatus } from '../util/suite';
 import type { Status } from '../util/suite';
 
-const IB_PORT = Number(process.argv[2] || 4001);
+const IB_PORT = Number(process.argv[2] || 4002);
 
 let failures = 0;
 function pass(name: string) { console.log('PASS ' + name); }
@@ -22,7 +22,7 @@ async function main() {
     pass(`ib port ${IB_PORT} accepting connections`);
   } else {
     fail(`ib port ${IB_PORT} accepting connections`,
-      IB_PORT === 7497 ? 'start TWS with the paper API port 7497' : 'start IB Gateway with the paper port 4001');
+      'start the paper session on this port: IB Gateway paper is 4002, TWS paper is unconfirmed (believed 7497), and 4001 is IB Gateway live');
   }
 
   let status: Status | null = null;
