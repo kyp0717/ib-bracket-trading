@@ -1310,8 +1310,10 @@ function onSse(e) {
     case 'conn': {
       const up = !!m.connected;
       $('conn-dot').className = 'dot' + (up ? (m.reconciled ? ' up' : ' wait') : ' down');
+      const prog = m.ibProg === 'ibgw' ? 'IBGW' : m.ibProg === 'tws' ? 'TWS' : 'IB?';
+      const acct = m.ibAcct === 'paper' ? 'PAPER' : m.ibAcct === 'live' ? 'LIVE' : '?';
       $('conn-text').textContent = up
-        ? `${m.host}:${m.ibPort} id ${m.nextValidId || '-'}${m.reconciled ? '' : ' reconciling...'}`
+        ? `${prog} ${m.ibPort} ${acct} id ${m.clientId}${m.reconciled ? '' : ' reconciling...'}`
         : 'disconnected';
       break;
     }

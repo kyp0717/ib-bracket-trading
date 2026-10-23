@@ -15,7 +15,10 @@ second header row would push the rails out of alignment with the chart
 - `ch-feedback`: thin feedback line to the right of center, shows
   `switch X sent`, `size N`, and error text.
 - `conn-pill` / `conn-dot` / `conn-text`: connection state pill at the
-  far right.
+  far right. Text is `PROG PORT ACCT id CLIENT`, e.g. `IBGW 4002 PAPER
+  id 90`: program (IBGW or TWS) from the port, account (PAPER or LIVE)
+  from the managedAccounts DU prefix, plus the app client id. No IP
+  address.
 
 ## How to reach it
 

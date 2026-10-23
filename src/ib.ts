@@ -4,7 +4,7 @@ import { emit } from "./emit";
 import { audit } from "./log";
 import * as bracket from "./bracket";
 import * as chart from "./chart";
-import type { ConnState } from "./wire";
+import type { ConnState, IbProg } from "./wire";
 
 const INFO_CODES = new Set([2104, 2106, 2158]);
 const DISCONNECT_CODES = new Set([1100, 2110, 1300]);
@@ -14,11 +14,19 @@ function argVal(name: string, dflt: string): string {
   return i >= 0 ? process.argv[i + 1] : dflt;
 }
 
+function progFromPort(port: number): IbProg {
+  if (port === 4001 || port === 4002) return "ibgw";
+  if (port === 7496 || port === 7497) return "tws";
+  return "unknown";
+}
+
 export const state: ConnState = {
   host: argVal("--host", "127.0.0.1"),
   ibPort: Number(argVal("--ibport", "4001")),
   webPort: Number(argVal("--port", "8080")),
   clientId: 90,
+  ibProg: progFromPort(Number(argVal("--ibport", "4001"))),
+  ibAcct: "unknown",
   connected: false,
   nextValidId: 0,
   reconciled: false,
@@ -73,6 +81,7 @@ function wire(): void {
   on(EventName.disconnected, () => {
     state.connected = false;
     state.reconciled = false;
+    state.ibAcct = "unknown";
     bracket.blockActivations();
     emit("exec", { t: "conn", ...state });
     console.log("disconnected, retrying in 5s");
@@ -98,6 +107,12 @@ function wire(): void {
     console.error(`error ${code} req ${reqId}: ${err.message}`);
     audit("error", `code=${code} req=${reqId} ${err.message}`);
     emit("exec", { t: "info", msg: `ERR ${code}: ${err.message}` });
+  });
+
+  on(EventName.managedAccounts, (accountsList: string) => {
+    const accts = accountsList.split(",").map((a) => a.trim()).filter(Boolean);
+    state.ibAcct = accts.some((a) => a.startsWith("DU")) ? "paper" : accts.length ? "live" : "unknown";
+    emit("exec", { t: "conn", ...state });
   });
 
   on(

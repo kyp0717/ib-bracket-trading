@@ -53,11 +53,17 @@ export interface Trade {
   size: number;
 }
 
+export type IbProg = "ibgw" | "tws" | "unknown";
+
+export type IbAcct = "paper" | "live" | "unknown";
+
 export interface ConnState {
   host: string;
   ibPort: number;
   webPort: number;
   clientId: number;
+  ibProg: IbProg;
+  ibAcct: IbAcct;
   connected: boolean;
   nextValidId: number;
   reconciled: boolean;

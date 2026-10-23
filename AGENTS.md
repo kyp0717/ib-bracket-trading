@@ -301,6 +301,12 @@ Two consequences to respect:
   size)`. Skip tickType, Number() the time
 - TWS replays open orders on connect before nextValidId. Reconcile
   starts on the `connected` event, not on nextValidId
+- Connection identity in the header pill is split by source: program
+  (IBGW/TWS) comes from the port mapping in "IB endpoints, live vs
+  paper", and account (PAPER/LIVE) comes from the `managedAccounts`
+  account list, where paper accounts start with DU. The broker's DU
+  prefix is the only ground truth for paper vs live; never derive
+  account type from the port
 - The gateway replays children before their parent on reqOpenOrders;
   reconcile must buffer orphans (fixed in bracket.ts, lesson in
   resource/lessons/)
