@@ -4,7 +4,7 @@
   "private": true,
   "description": "Bracket-only trading app against IB Gateway. Zero abstraction.",
   "scripts": {
-    "start": "tsx server.ts"
+    "start": "tsx src/main.ts"
   },
   "dependencies": {
     "@stoqey/ib": "^1.3.4"

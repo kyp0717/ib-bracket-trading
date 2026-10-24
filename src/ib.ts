@@ -5,6 +5,7 @@ import { audit } from "./log";
 import * as bracket from "./bracket";
 import * as chart from "./chart";
 import type { ConnState, IbProg } from "./wire";
+import type { Broker } from "./broker";
 
 const INFO_CODES = new Set([2104, 2106, 2158]);
 const DISCONNECT_CODES = new Set([1100, 2110, 1300]);
@@ -198,4 +199,26 @@ export function place(contract: Contract, order: any): void {
 
 export function cancel(orderId: number): void {
   ib.cancelOrder(orderId);
+}
+
+export function createBroker(): Broker {
+  return {
+    state,
+    connect,
+    subscribe: (symbol: string) => chart.setSymbol(symbol),
+    unsubscribe: (_symbol: string) => {},
+    quote: () => chart.quote(),
+    activate: (params) => bracket.activate(params),
+    deactivate: (reason) => bracket.deactivate(reason),
+    editLevels: (levels) => bracket.editLevels(levels),
+    flatten: (symbol, offset) => bracket.flatten(symbol, offset),
+    pending: () => bracket.pending(),
+    hasWorking: () => bracket.hasWorking(),
+    position: (symbol) => bracket.position(symbol),
+    snapshot: () => bracket.snapshot(),
+    getSymbol: () => chart.getSymbol(),
+    histSnapshot: (tf) => chart.histSnapshot(tf),
+    tapeSnapshot: () => chart.tapeSnapshot(),
+    bookSnapshot: () => chart.bookSnapshot(),
+  };
 }

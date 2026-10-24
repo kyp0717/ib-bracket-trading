@@ -26,7 +26,7 @@ fi
 LOG="$RUN/app.log"
 : > "$LOG"
 cd "$ROOT"
-setsid npx tsx src/server.ts --ibport "$PAPER" --port "$WEB_PORT" > "$LOG" 2>&1 < /dev/null &
+setsid npx tsx src/main.ts --ibport "$PAPER" --port "$WEB_PORT" > "$LOG" 2>&1 < /dev/null &
 PID=$!
 
 for _ in $(seq 1 20); do
