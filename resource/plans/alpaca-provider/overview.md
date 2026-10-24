@@ -52,17 +52,23 @@ Excluded:
 
 ## Always-on test data (decided)
 
-Alpaca has no fake or simulated stock stream. The always-on option is crypto.
-Alpaca crypto streams 24/7 with trades, quotes, bars, and a real orderbook, and
-`BTC/USD` is the canonical always-live symbol. Alpaca stock (paper IEX, or SIP by
-subscription) streams only during regular hours and has top-of-book quotes, not a
-depth ladder.
+Alpaca has no fake or simulated stock stream. The always-on options are
+real data on real sessions. Alpaca paper trading now runs 24/5 for NMS
+securities (overnight 8:00 PM-4:00 AM ET through the BOATS ATS, plus
+pre-market, regular, and after-hours, Sunday 8:00 PM ET to Friday 8:00 PM
+ET). Crypto streams 24/7, including the weekend gap, with trades, quotes,
+bars, and a real orderbook; `BTC/USD` is the canonical always-live symbol.
+Alpaca stock quotes are top-of-book only, no depth ladder.
 
-Consequence for the plan: the Alpaca market-data adapter must read both the stock
-feed (trades, quotes, bars) and the crypto feed (trades, quotes, bars, orderbook).
-Crypto is the 24/7 path for proving the visual surface; stocks are the RTH path for
-order placement. The depth panel is data-driven: stocks supply a one-level book,
-crypto supplies a real ladder, and the GUI stays identical.
+Consequence for the plan: the Alpaca market-data adapter reads both the
+stock feed (trades, quotes, bars) and the crypto feed (trades, quotes,
+bars, orderbook). A liquid NMS stock such as `SPY` is the order-path and
+visual symbol for most of the week; `BTC/USD` covers the weekend and
+proves the depth ladder. The depth panel is data-driven: stocks supply a
+one-level book, crypto supplies a real ladder, and the GUI stays
+identical. Confirm on a paper account whether the overnight BOATS session
+flows through the free IEX feed or needs a SIP subscription before
+relying on overnight equities for a visual drive.
 
 ## Applicable skills
 
