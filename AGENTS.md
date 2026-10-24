@@ -3,7 +3,8 @@
 Bracket-order trading web app against IB Gateway / TWS, in TypeScript
 on Node.js. One language for server and GUI, no build step. This file
 is the design contract and the validation recipe; the lessons in
-resource/lessons/ carry what the runs taught us, and
+resource/lessons/ carry what the runs taught us,
+resource/bugs/ carry the defects we fixed, and
 resource/go-live/ carries the path to real money.
 
 ## Audience: the developer is not a frontend engineer
@@ -87,8 +88,8 @@ repo-specific steps live here.
 5. **validate** — doctor, drive the changed feature, prove with
    pass/fail lines and saved evidence, end flat.
 
-Red at any point writes a lesson under `resource/lessons/` before the
-loop continues.
+Red at any point writes a lesson under `resource/lessons/` or a bug
+under `resource/bugs/` before the loop continues.
 
 ## Two-Machine Workflow (woodlawn ↔ linden) — IMPORTANT
 
@@ -191,6 +192,7 @@ drive the mapped feature, capture evidence, clean up.
   accepting them. The app reports ok and the position silently
   survives. See
   resource/lessons/20261013-market-orders-are-limit-only-outside-regular-hours.md.
+  Bugs go in `resource/bugs/` per `resource/bugs/README.md`.
 - GUI behavior is proven by driving the real page with Playwright,
   never by reading page source. If a change touches page.html, a web
   drive must cover it.
@@ -207,11 +209,9 @@ drive the mapped feature, capture evidence, clean up.
   rather than queued and stays untested because the refusal window is
   milliseconds.
 - Every issue found in a run, especially edge cases, gets a lesson
-  file in `resource/lessons/` before the work is committed, per the
-  lesson-learned skill: `domain.<YYYYMMDD>.<title>.md` for knowledge
-  about the outside world, `edge.<YYYYMMDD>.<title>.md` for a case the
-  happy path missed. Design decisions no drive can express go into
-  AGENTS.md, not into code comments or lesson files.
+  file in `resource/lessons/` or `resource/bugs/` before the work is
+  committed, per the lesson-learned skill. Bugs follow
+  `resource/bugs/README.md`.
 - Never leave a position or a resting bracket on the paper account when
   a session ends. Flatten and deactivate before stopping.
 
