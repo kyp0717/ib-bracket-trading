@@ -1,6 +1,8 @@
 import { emit } from "../../core/emit";
 import { audit } from "../../core/log";
 import * as chart from "./chart";
+import * as orders from "./orders";
+import * as core from "../../core/bracket";
 import type { ConnState } from "../../core/wire";
 import type { Broker, BrokerResult } from "../../core/broker";
 
@@ -201,9 +203,14 @@ export function connect(): void {
   if (started) return;
   started = true;
   for (const f of feeds) openFeed(f);
+  orders.connect();
 }
 
-const PHASE5: BrokerResult = { ok: false, error: "alpaca orders land in phase 5" };
+const NO_KEYS: BrokerResult = { ok: false, error: "missing Alpaca credentials" };
+
+function withKeys(fn: () => BrokerResult): BrokerResult {
+  return keys() ? fn() : NO_KEYS;
+}
 
 export function createBroker(): Broker {
   return {
@@ -212,14 +219,14 @@ export function createBroker(): Broker {
     subscribe: (symbol: string) => chart.setSymbol(symbol),
     unsubscribe: (symbol: string) => chart.clearSymbol(symbol),
     quote: () => chart.quote(),
-    activate: () => PHASE5,
-    deactivate: () => PHASE5,
-    editLevels: () => PHASE5,
-    flatten: () => PHASE5,
-    pending: () => false,
-    hasWorking: () => false,
-    position: () => 0,
-    snapshot: () => ({ current: null, _pending: false }),
+    activate: (params) => withKeys(() => core.activate(params)),
+    deactivate: (reason) => withKeys(() => core.deactivate(reason)),
+    editLevels: (levels) => withKeys(() => core.editLevels(levels)),
+    flatten: (symbol, offset) => withKeys(() => core.flatten(symbol, offset)),
+    pending: () => core.pending(),
+    hasWorking: () => core.hasWorking(),
+    position: (symbol) => core.position(symbol),
+    snapshot: () => core.snapshot(),
     getSymbol: () => chart.getSymbol(),
     histSnapshot: (tf) => chart.histSnapshot(tf),
     tapeSnapshot: () => chart.tapeSnapshot(),
