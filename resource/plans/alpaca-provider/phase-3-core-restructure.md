@@ -17,7 +17,9 @@ the two provider homes exist before Alpaca arrives. Behavior stays identical.
 - The pure rules and the IB adapter meet through the event/intent vocabulary: the
   rules emit `place`, `cancel`, `modify`; the adapter translates those to IB
   orders and translates IB events back to `leg filled` or `leg cancelled`.
-- `scanner/` stays where it is, IB-only, untouched.
+- The scanner is already gone; it lives in its own repo, `scanner-ts`,
+  and is out of scope for this phase. See
+  resource/plans/scanner-migration.md.
 
 ## Data structures
 

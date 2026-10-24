@@ -21,7 +21,8 @@ Included:
 
 Excluded:
 
-- Porting `scanner/` to Alpaca. It stays an IB-only side tool.
+- The scanner. It moved to its own repo, `scanner-ts`, and is out of the
+  trading app's scope entirely. See resource/plans/scanner-migration.md.
 - Alpaca crypto order execution. The app remains long-only stock brackets; crypto
   is used for market-data visual testing only, not order placement.
 - Account management, credential UI, or a provider switcher inside the running

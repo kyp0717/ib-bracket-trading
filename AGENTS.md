@@ -178,9 +178,9 @@ its `features/` directory, and local evidence under its `evidence/`
 directory that survives cleanup. To verify a change: launch, doctor,
 drive the mapped feature, capture evidence, clean up.
 
-- The static gate stays: `tsc --noEmit` over `src/` and `scanner/`
-  against the wire types in `wire.ts`. Run it before any verification
-  pass; a type break fails in seconds, gateway closed.
+- The static gate stays: `tsc --noEmit` over `src/` against the wire
+  types in `wire.ts`. Run it before any verification pass; a type break
+  fails in seconds, gateway closed.
 - Paper endpoints only, both safe for destructive drives: IB Gateway
   paper is 4002 (confirmed on both machines). TWS paper is unconfirmed
   (operator believes 7497). 4001 is IB Gateway LIVE and no verification
