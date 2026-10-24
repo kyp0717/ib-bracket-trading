@@ -1,11 +1,12 @@
 
 import { IBApi, EventName, Stock, Contract } from "@stoqey/ib";
-import { emit } from "./emit";
-import { audit } from "./log";
-import * as bracket from "./bracket";
+import { emit } from "../../core/emit";
+import { audit } from "../../core/log";
+import * as adapter from "./bracket";
+import * as core from "../../core/bracket";
 import * as chart from "./chart";
-import type { ConnState } from "./wire";
-import type { Broker } from "./broker";
+import type { ConnState } from "../../core/wire";
+import type { Broker } from "../../core/broker";
 
 const INFO_CODES = new Set([2104, 2106, 2158]);
 const DISCONNECT_CODES = new Set([1100, 2110, 1300]);
@@ -120,7 +121,7 @@ function wire(): void {
     emit("exec", { t: "conn", ...state });
     console.log(`connected to ${conn.host}:${conn.ibPort}`);
 
-    bracket.beginReconcile();
+    adapter.beginReconcile();
   });
 
   on(EventName.disconnected, () => {
@@ -128,7 +129,7 @@ function wire(): void {
     conn.reconciled = false;
     conn.ibAcct = "unknown";
     publish();
-    bracket.blockActivations();
+    core.blockActivations();
     emit("exec", { t: "conn", ...state });
     console.log("disconnected, retrying in 5s");
     setTimeout(connect, 5000);
@@ -168,15 +169,15 @@ function wire(): void {
     (orderId: number, status: string, filled: number, remaining: number,
      avgFillPrice: number, permId: number, parentId: number,
      lastFillPrice: number, clientId: number, whyHeld: string) => {
-      bracket.onOrderStatus(orderId, status, filled, remaining, avgFillPrice, parentId);
+      core.onLegStatus(orderId, status, filled, avgFillPrice);
     }
   );
 
   on(EventName.openOrder, (orderId: number, contract: Contract, order: any) => {
-    bracket.onOpenOrder(orderId, contract.symbol ?? "", order);
+    adapter.onOpenOrder(orderId, contract.symbol ?? "", order);
   });
 
-  on(EventName.openOrderEnd, () => bracket.onReconcileStep("openOrders"));
+  on(EventName.openOrderEnd, () => adapter.onReconcileStep("openOrders"));
 
   on(EventName.contractDetails, (reqId: number, details: any) => {
     chart.onContractDetails(reqId, details?.contract?.primaryExchange ?? "", details?.validExchanges ?? "");
@@ -187,11 +188,11 @@ function wire(): void {
   });
 
   on(EventName.position, (account: string, contract: Contract, pos: number, avgCost: number) => {
-    bracket.onPosition(contract.symbol ?? "", pos);
+    core.onPosition(contract.symbol ?? "", pos);
   });
 
   on(EventName.positionEnd, () => {
-    bracket.onReconcileStep("positions");
+    adapter.onReconcileStep("positions");
     ib.cancelPositions();
   });
 
@@ -255,14 +256,14 @@ export function createBroker(): Broker {
     subscribe: (symbol: string) => chart.setSymbol(symbol),
     unsubscribe: (_symbol: string) => {},
     quote: () => chart.quote(),
-    activate: (params) => bracket.activate(params),
-    deactivate: (reason) => bracket.deactivate(reason),
-    editLevels: (levels) => bracket.editLevels(levels),
-    flatten: (symbol, offset) => bracket.flatten(symbol, offset),
-    pending: () => bracket.pending(),
-    hasWorking: () => bracket.hasWorking(),
-    position: (symbol) => bracket.position(symbol),
-    snapshot: () => bracket.snapshot(),
+    activate: (params) => core.activate(params),
+    deactivate: (reason) => core.deactivate(reason),
+    editLevels: (levels) => core.editLevels(levels),
+    flatten: (symbol, offset) => core.flatten(symbol, offset),
+    pending: () => core.pending(),
+    hasWorking: () => core.hasWorking(),
+    position: (symbol) => core.position(symbol),
+    snapshot: () => core.snapshot(),
     getSymbol: () => chart.getSymbol(),
     histSnapshot: (tf) => chart.histSnapshot(tf),
     tapeSnapshot: () => chart.tapeSnapshot(),

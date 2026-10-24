@@ -54,7 +54,7 @@ export function start(broker: Broker): void {
 
     try {
       if (req.method === "GET" && path === "/") {
-        readFile("page.html", (err, data) => {
+        readFile(new URL("./page.html", import.meta.url), (err, data) => {
           if (err) {
             sendJson(res, 500, { error: String(err) });
             return;

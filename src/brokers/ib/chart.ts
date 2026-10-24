@@ -1,11 +1,11 @@
 
 import { BarSizeSetting, Stock, TickByTickDataType, WhatToShow } from "@stoqey/ib";
-import * as ibmod from "./ib";
-import { emit } from "./emit";
-import { audit } from "./log";
-import type { Bar, DepthBook, DepthLevel, Trade } from "./wire";
+import * as ibmod from "./index";
+import { emit } from "../../core/emit";
+import { audit } from "../../core/log";
+import type { Bar, DepthBook, DepthLevel, Trade } from "../../core/wire";
 
-export type { Bar, Trade } from "./wire";
+export type { Bar, Trade } from "../../core/wire";
 
 let lastQuote: Trade | null = null;
 
