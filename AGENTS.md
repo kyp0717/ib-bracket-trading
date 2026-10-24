@@ -178,10 +178,6 @@ its `features/` directory, and local evidence under its `evidence/`
 directory that survives cleanup. To verify a change: launch, doctor,
 drive the mapped feature, capture evidence, clean up.
 
-The pre-poteto scenario suite is archived, not deleted, under
-`archive/`. The verify skill's SKILL.md says what is there and when to
-mine it.
-
 - The static gate stays: `tsc --noEmit` over `src/` and `scanner/`
   against the wire types in `wire.ts`. Run it before any verification
   pass; a type break fails in seconds, gateway closed.
@@ -218,6 +214,13 @@ mine it.
   AGENTS.md, not into code comments or lesson files.
 - Never leave a position or a resting bracket on the paper account when
   a session ends. Flatten and deactivate before stopping.
+
+## Archive
+
+The `archive/` directory holds the retired pre-poteto scenario suite and
+feature inventory. It is reference material only. Do not search or read
+it, or any file inside it, during normal work. Consult it only when a
+task or the operator explicitly asks.
 
 ## Speed rules
 

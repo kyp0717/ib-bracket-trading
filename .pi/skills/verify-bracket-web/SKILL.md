@@ -170,9 +170,7 @@ driving, then the matching feature file as the recipe.
 
 ## Legacy suite
 
-The pre-poteto scenario suite is archived, not deleted:
-`archive/test-legacy/` holds the runners and scenarios,
-`archive/features-legacy/` holds the old feature inventory. Treat both
-as proven recipe references. They are excluded from the static gate and
-are not the active path; if one must run, call it by its new path, e.g.
-`bash archive/test-legacy/run-all.sh 4002` during regular hours.
+The pre-poteto scenario suite lives under `archive/` and is out of scope
+for normal verification. Do not search or read it, or any file inside
+it, unless a task or the operator explicitly asks. It is excluded from
+the static gate and is not the active path.

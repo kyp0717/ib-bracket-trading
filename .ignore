@@ -3,3 +3,6 @@
 !graft/
 graft/.cache/
 graft/.graph/
+
+# retired pre-poteto suite: out of scope, never surfaced in searches
+archive/
