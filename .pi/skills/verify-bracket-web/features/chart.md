@@ -15,6 +15,10 @@ centered in the chart.
 - `indicator-tag` (`#ch-ind-tag`, `#ch-ind-vwap`, `#ch-ind-ema9`) shows
   VWAP and EMA9 values, only on the 1m timeframe.
 - `watermark` (`#ch-wm`) shows the watched symbol, always.
+- `pinned-axis`: the price axis is pinned after the first bars arrive,
+  so candles and level lines hold their scale while ticks flow and the
+  chart pans. The axis refits only on a timeframe switch, a symbol
+  switch, or when price exits the pinned range.
 
 ## How to get to it (user POV)
 
@@ -57,3 +61,6 @@ Preconditions:
 - The watermark is `pointer-events: none`; it never eats drags.
 - The forming 10s and 1m candles are built from tick-by-tick prints, so
   the current candle close equals the last tape price.
+- The pinned axis is client-side state; a manual zoom on the price axis
+  is not tracked, so a boundary refit can override a user zoom. Assert
+  level positions with the drive, not by hand-zooming first.

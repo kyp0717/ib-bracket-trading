@@ -8,6 +8,10 @@ arms or disarms the bracket.
 
 - `bracket-column` (`#ch-col`) holds the three `.tc-hnd` rows and the
   `#ch-arm` head button.
+- `pinned-axis`: the price axis is pinned after the first bars arrive,
+  so rows and lines hold their pixel position while ticks flow and the
+  chart pans. They move only on a timeframe switch, a symbol switch, or
+  when price exits the pinned range.
 - `level-rows` (`.tc-hnd`) one per level in order entry, target as EXIT,
   stop as STOP; each shows a label and price.
 - `arm-button` (`#ch-arm`) reads DISABLE when flat, ENABLE when a
@@ -31,10 +35,11 @@ Preconditions:
 - **Read the rows.** Assert three `.tc-hnd` rows exist and each shows a
   numeric price. Data proof: none until a bracket activates; the rows
   are local defaults at this stage.
-- **Unit drag.** Pointer-drag one `.tc-hnd` row; all three levels move
-  together by the same delta. In Playwright use pointer events
-  (`page.mouse.down/move/up` on the row's box), not `dragTo`, because
-  the handler uses `setPointerCapture`.
+- **Rows stay pinned.** Run
+  `node .pi/skills/verify-bracket-web/bin/drive.mjs bracket-rail`. It
+  reads the ENTRY row, pans the chart 200px, waits through live ticks,
+  and asserts the row keeps an identical price and pixel position, then
+  cycles 1m/1d/10s and asserts the row still renders after each refit.
 - **Price drag on the chart tag.** Drag a `.tc-level-tag`; only that one
   level moves.
 - **Lock.** With a filled entry, attempt a drag on the entry row; assert
@@ -47,6 +52,11 @@ Preconditions:
 - **Proof.** Screenshot the armed rail at
   `evidence/bracket-rail/bracket-armed.png` with the three prices
   visible, plus the `/api/audit` activation line.
+
+- **Unit drag.** Pointer-drag one `.tc-hnd` row; all three levels move
+  together by the same delta. In Playwright use pointer events
+  (`page.mouse.down/move/up` on the row's box), not `dragTo`, because
+  the handler uses `setPointerCapture`.
 
 ## Gotchas
 

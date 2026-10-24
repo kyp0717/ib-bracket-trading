@@ -103,7 +103,58 @@ async function driveHeaderTickerForm() {
   });
 }
 
-const drivers = { render: driveRender, 'header-ticker-form': driveHeaderTickerForm };
+async function driveBracketRail() {
+  await page.fill('#ch-input', 'SPY');
+  await page.click('#ch-switch-btn');
+  await page.waitForFunction(() => {
+    const rows = document.querySelectorAll('#ch-col .tc-hnd');
+    return [...rows].some((r) => r.style.display === 'flex');
+  }, null, { timeout: 30000 });
+  await page.waitForTimeout(3000);
+
+  const read = () => page.evaluate(() => {
+    const row = [...document.querySelectorAll('#ch-col .tc-hnd')].find((r) => r.textContent.startsWith('ENTRY'));
+    return { text: row ? row.textContent : null, top: row ? row.style.top : null };
+  });
+
+  const before = await read();
+  await shot('rail-before-pan');
+
+  const chart = await page.locator('#ch-second').boundingBox();
+  await page.mouse.move(chart.x + chart.width / 2, chart.y + chart.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(chart.x + chart.width / 2 - 200, chart.y + chart.height / 2, { steps: 5 });
+  await page.mouse.up();
+  await page.waitForTimeout(500);
+  const afterPan = await read();
+
+  for (let i = 0; i < 10; i++) await page.waitForTimeout(700);
+  const afterTicks = await read();
+  await shot('rail-after-pan-ticks');
+
+  before.text === afterPan.text && before.top === afterPan.top
+    ? pass('levels hold price and pixel position across a chart pan')
+    : fail('levels hold price and pixel position across a chart pan', `before=${JSON.stringify(before)} afterPan=${JSON.stringify(afterPan)}`);
+  afterPan.text === afterTicks.text && afterPan.top === afterTicks.top
+    ? pass('levels hold price and pixel position while ticks flow')
+    : fail('levels hold price and pixel position while ticks flow', `afterPan=${JSON.stringify(afterPan)} afterTicks=${JSON.stringify(afterTicks)}`);
+
+  for (const tf of ['1m', '1d', '10s']) {
+    await page.click(`#ch-tf .tc-size-btn[data-tf="${tf}"]`);
+    await page.waitForTimeout(1200);
+    const s = await page.evaluate(() => {
+      const row = [...document.querySelectorAll('#ch-col .tc-hnd')].find((r) => r.textContent.startsWith('ENTRY'));
+      return { display: row ? row.style.display : null, top: row ? row.style.top : null };
+    });
+    s.display === 'flex' && s.top
+      ? pass(`levels render on ${tf} after refit`)
+      : fail(`levels render on ${tf} after refit`, JSON.stringify(s));
+  }
+
+  await saveState('bracket-rail', { before, afterPan, afterTicks });
+}
+
+const drivers = { render: driveRender, 'header-ticker-form': driveHeaderTickerForm, 'bracket-rail': driveBracketRail };
 if (!drivers[feature]) {
   console.error(`unknown feature '${feature}'. known: ${Object.keys(drivers).join(', ')}`);
   console.error('IB-dependent features are driven per features/<name>.md, not here.');

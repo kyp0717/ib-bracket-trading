@@ -604,6 +604,7 @@ let symbol = 'SPY';
 try { symbol = localStorage.getItem(SYMBOL_KEY) || 'SPY'; } catch (e) {}
 let dragging = false;
 let needsPriceFit = true;
+let pinnedRange = null;
 let suppressUntil = 0;
 let bracket = null;        // server snapshot: current bracket or null
 let bracketActive = false;
@@ -908,7 +909,8 @@ function fitPriceScale(){
     }
   }
   const pad = (hi - lo) * 0.08;
-  priceChart.priceScale('right').setVisibleRange({ from: lo - pad, to: hi + pad });
+  pinnedRange = { from: lo - pad, to: hi + pad };
+  priceChart.priceScale('right').setVisibleRange(pinnedRange);
   return true;
 }
 
@@ -996,6 +998,7 @@ function setCurrentTf(next){
   renderMacd();
   renderIndicators();
   priceChart.timeScale().fitContent();
+  fitPriceScale();
   renderLevels();
 }
 
@@ -1008,6 +1011,7 @@ function onHist(m){
     renderMacd();
     renderIndicators();
     priceChart.timeScale().fitContent();
+    if (needsPriceFit && fitPriceScale()) needsPriceFit = false;
     renderLevels();
   }
   markArrived();
@@ -1020,6 +1024,7 @@ function onBar(m){
     volume.update(toVolume(m.bar));
     renderMacd();
     renderIndicators();
+    if (needsPriceFit && fitPriceScale()) needsPriceFit = false;
     renderLevels();
   }
   markArrived();
@@ -1143,6 +1148,7 @@ function resetCharts(){
   tapePrevPrice = null;
   depthBids = [];
   depthAsks = [];
+  pinnedRange = null;
   candle.setData([]);
   volume.setData([]);
   macdHist.setData([]);
@@ -1326,6 +1332,7 @@ function onSse(e) {
     case 'tape': {
       lastPrice = m.trade.price;
       prependTrades([m.trade]);
+      if (pinnedRange && (lastPrice < pinnedRange.from || lastPrice > pinnedRange.to)) fitPriceScale();
       if (!dragging) renderPosition();
       break;
     }
