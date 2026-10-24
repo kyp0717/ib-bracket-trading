@@ -8,6 +8,7 @@ RUN="$SKILL/.run"
 PID="$(cat "$RUN/pid")"
 PAPER="$(cat "$RUN/paper-port")"
 WEB="$(cat "$RUN/web-port")"
+PROVIDER="$(cat "$RUN/provider" 2>/dev/null || echo ib)"
 
 echo "== app process =="
 if kill -0 -"$PID" 2>/dev/null; then
@@ -26,16 +27,20 @@ else
 fi
 
 echo "== ib paper port =="
-if ss -ltn 2>/dev/null | grep -q ":$PAPER "; then
-  echo "PASS ib paper port $PAPER accepting connections"
+if [ "$PROVIDER" = "ib" ]; then
+  if ss -ltn 2>/dev/null | grep -q ":$PAPER "; then
+    echo "PASS ib paper port $PAPER accepting connections"
+  else
+    echo "FAIL ib paper port $PAPER not listening: start IB Gateway paper and log in"
+  fi
 else
-  echo "FAIL ib paper port $PAPER not listening: start IB Gateway paper and log in"
+  echo "SKIP ib paper port (provider is $PROVIDER)"
 fi
 
 echo "== connected and reconciled gate =="
 if [ -z "$STATUS" ]; then
   echo "FAIL gate: no /status payload to judge"
-elif printf '%s' "$STATUS" | node -e 'let s="";process.stdin.on("data",(d)=>s+=d).on("end",()=>{const j=JSON.parse(s);if(j.connected&&j.reconciled){console.log(`PASS connected and reconciled (${j.ibProg} ${j.ibPort} ${j.ibAcct} id ${j.clientId})`)}else{console.log(`FAIL connected/reconciled: ${s}`);process.exit(1)}})'; then
+elif printf '%s' "$STATUS" | node -e 'let s="";process.stdin.on("data",(d)=>s+=d).on("end",()=>{const j=JSON.parse(s);if(j.connected&&j.reconciled){console.log(`PASS connected and reconciled (${j.provider} ${j.label})`)}else{console.log(`FAIL connected/reconciled: ${s}`);process.exit(1)}})'; then
   :
 else
   echo "gate: order/data features are blocked until connected and reconciled"

@@ -6,9 +6,10 @@ use the matching feature file as the recipe.
 
 ## Baseline preconditions
 
-- Launch with `bash .pi/skills/verify-bracket-web/bin/launch.sh`, which
-  maps `hostname` to the paper port (4002 on both machines) and
-  refuses to start if port 8080 is already owned.
+- Launch with `bash .pi/skills/verify-bracket-web/bin/launch.sh [provider]`,
+  which maps `hostname` to the paper port for `ib` (4002 on both
+  machines), requires the Alpaca key vars for `alpaca`, and refuses to
+  start if port 8080 is already owned.
 - Run `bash .pi/skills/verify-bracket-web/bin/doctor.sh` and require
   `connected:true, reconciled:true` before driving any order or data
   feature. Without it, only `render` and `header-ticker-form` apply.

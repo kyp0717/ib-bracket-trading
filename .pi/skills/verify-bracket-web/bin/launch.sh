@@ -6,12 +6,11 @@ ROOT="$(cd "$SKILL/../../.." && pwd)"
 RUN="$SKILL/.run"
 mkdir -p "$RUN"
 
-HOST="$(hostname | cut -d. -f1)"
-case "$HOST" in
-  woodlawn) PAPER=4002 ;;
-  linden)   PAPER=4002 ;;
+PROVIDER="${1:-ib}"
+case "$PROVIDER" in
+  ib|alpaca) ;;
   *)
-    echo "unknown host '$HOST': add its paper port to $0 before driving" >&2
+    echo "unknown provider '$PROVIDER': usage launch.sh [ib|alpaca]" >&2
     exit 2
     ;;
 esac
@@ -26,7 +25,26 @@ fi
 LOG="$RUN/app.log"
 : > "$LOG"
 cd "$ROOT"
-setsid npx tsx src/main.ts --ibport "$PAPER" --port "$WEB_PORT" > "$LOG" 2>&1 < /dev/null &
+
+if [ "$PROVIDER" = "ib" ]; then
+  HOST="$(hostname | cut -d. -f1)"
+  case "$HOST" in
+    woodlawn) PAPER=4002 ;;
+    linden)   PAPER=4002 ;;
+    *)
+      echo "unknown host '$HOST': add its paper port to $0 before driving" >&2
+      exit 2
+      ;;
+  esac
+  setsid npx tsx src/apps/ib-main.ts --ibport "$PAPER" --port "$WEB_PORT" > "$LOG" 2>&1 < /dev/null &
+else
+  if [ -z "${APCA_API_KEY_ID:-}" ] || [ -z "${APCA_API_SECRET_KEY:-}" ]; then
+    echo "refusing: APCA_API_KEY_ID and APCA_API_SECRET_KEY must be set for an alpaca run" >&2
+    exit 2
+  fi
+  PAPER=443
+  setsid npx tsx src/apps/alpaca-main.ts --port "$WEB_PORT" > "$LOG" 2>&1 < /dev/null &
+fi
 PID=$!
 
 for _ in $(seq 1 20); do
@@ -42,7 +60,8 @@ fi
 printf '%s' "$PID" > "$RUN/pid"
 printf '%s' "$PAPER" > "$RUN/paper-port"
 printf '%s' "$WEB_PORT" > "$RUN/web-port"
-printf '%s' "$HOST" > "$RUN/host"
+printf '%s' "$PROVIDER" > "$RUN/provider"
+printf '%s' "${HOST:-}" > "$RUN/host"
 
-echo "app up: http://localhost:$WEB_PORT  paper ibPort=$PAPER  host=$HOST  pgroup=$PID"
+echo "app up: http://localhost:$WEB_PORT  provider=$PROVIDER  host=${HOST:-n/a}  pgroup=$PID"
 echo "log: $LOG"

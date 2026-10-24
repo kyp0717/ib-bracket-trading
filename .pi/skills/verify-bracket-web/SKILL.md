@@ -5,13 +5,14 @@ description: Drive the bracket-web trading app (Node/TypeScript web UI that plac
 
 # Verify bracket-web
 
-bracket-web is a single-page trading UI served by `src/server.ts` on
-`http://127.0.0.1:8080`. A user switches a ticker, reads a price chart
-with tape and depth, arms one bracket (entry/exit/stop), confirms it in
-a modal, and flattens with the Delete key. The app talks to IB Gateway
-or TWS over `--ibport` and places real orders on the paper account, so
-every drive below is scoped to the paper port for the machine it runs
-on.
+bracket-web is a single-page trading UI served from
+`src/apps/<provider>-main.ts` on `http://127.0.0.1:8080`. A user switches
+a ticker, reads a price chart with tape and depth, arms one bracket
+(entry/exit/stop), confirms it in a modal, and flattens with the Delete
+key. The app runs one broker per process: `ib` talks to IB Gateway or TWS
+over `--ibport`, and `alpaca` talks to Alpaca paper over the API keys.
+Every drive below is scoped to the paper side of whichever provider the
+run names.
 
 Two machines share this repo. The app default (`--ibport 4001`) is IB
 Gateway LIVE on every machine. Always pass the paper port explicitly.
@@ -25,23 +26,28 @@ Gateway LIVE on every machine. Always pass the paper port explicitly.
 
 Prerequisites, checked before anything drives:
 
-- `hostname` known and in the table above (launch.sh refuses otherwise).
-- IB Gateway paper is running and logged in on the paper port. Login is
-  per-machine state with manual recreate steps; the app serves the page
-  without it, but no market data or orders arrive.
+- For `ib`: `hostname` known and in the table above, and IB Gateway
+  paper running and logged in on the paper port. Login is per-machine
+  state with manual recreate steps; the app serves the page without it,
+  but no market data or orders arrive.
+- For `alpaca`: `APCA_API_KEY_ID` and `APCA_API_SECRET_KEY` set for the
+  paper account (launch.sh refuses otherwise).
 - `npm install` done once; `npx tsc --noEmit` passes (the static gate).
 
 Launch the app:
 
 ```bash
 cd /home/phage/work/ib-bracket-trading   # repo root on the current machine
-bash .pi/skills/verify-bracket-web/bin/launch.sh
+bash .pi/skills/verify-bracket-web/bin/launch.sh          # ib (default)
+bash .pi/skills/verify-bracket-web/bin/launch.sh alpaca   # alpaca
 ```
 
-What launch.sh does: reads `hostname`, maps it to the paper port,
-refuses if port 8080 is already owned (do not double-drive the shared
-paper account), starts the app under a new process group with an
-explicit `--ibport`, and records the group pid, ports, and host in
+What launch.sh does: takes the provider as its first argument (default
+`ib`), maps `hostname` to the paper port for `ib` and requires the two
+Alpaca key vars for `alpaca`, refuses if port 8080 is already owned (do
+not double-drive the shared paper account), starts the matching
+`src/apps/<provider>-main.ts` entry under a new process group, and
+records the group pid, ports, provider, and host in
 `.pi/skills/verify-bracket-web/.run/`.
 
 Readiness is the log line:
