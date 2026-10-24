@@ -74,7 +74,7 @@ export function onReconcileStep(which: "openOrders" | "positions"): void {
 function finishReconcileIfDone(): void {
   if (activationsBlocked && !reconcilePending.openOrders && !reconcilePending.positions) {
     activationsBlocked = false;
-    ibmod.state.reconciled = true;
+    ibmod.setReconciled();
     if (reconcileTimer) clearTimeout(reconcileTimer);
     reconcileTimer = null;
     audit("reconcile", "open orders and positions replayed, activations open");
@@ -138,7 +138,6 @@ export function activate(p: ActivateParams, replacing = false): { ok: boolean; e
     parent: { orderId: parentId, status: "PendingSubmit", filled: 0, avgPrice: 0 },
     stopLeg: { orderId: stopId, status: "PendingSubmit", filled: 0, avgPrice: 0 },
     targetLeg: { orderId: targetId, status: "PendingSubmit", filled: 0, avgPrice: 0 },
-    ocaGroup,
   };
 
   const parent: any = {
@@ -275,7 +274,7 @@ export function editLevels(lv: Levels): { ok: boolean; error?: string } {
     lmtPrice: stop,
     tif: "GTC",
     transmit: true,
-    ocaGroup: br.ocaGroup,
+    ocaGroup: `br-${symbol}-${br.parent.orderId}`,
     ocaType: 1,
     outsideRth: true,
   });
@@ -288,7 +287,7 @@ export function editLevels(lv: Levels): { ok: boolean; error?: string } {
     lmtPrice: target,
     tif: "GTC",
     transmit: true,
-    ocaGroup: br.ocaGroup,
+    ocaGroup: `br-${symbol}-${br.parent.orderId}`,
     ocaType: 1,
     outsideRth: true,
   });
@@ -396,7 +395,6 @@ function attachReconciledLeg(orderId: number, symbol: string, order: any): void 
       parent: { orderId: parent.order.orderId ?? order.parentId, status: "Submitted", filled: 0, avgPrice: 0 },
       stopLeg: { orderId: 0, status: "none", filled: 0, avgPrice: 0 },
       targetLeg: { orderId: 0, status: "none", filled: 0, avgPrice: 0 },
-      ocaGroup: order.ocaGroup || `br-${parent.symbol}-${order.parentId}`,
     };
     current = br;
     indexLegs(br);

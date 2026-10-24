@@ -4,7 +4,7 @@ import { emit } from "./emit";
 import { audit } from "./log";
 import * as bracket from "./bracket";
 import * as chart from "./chart";
-import type { ConnState, IbProg } from "./wire";
+import type { ConnState } from "./wire";
 import type { Broker } from "./broker";
 
 const INFO_CODES = new Set([2104, 2106, 2158]);
@@ -15,13 +15,29 @@ function argVal(name: string, dflt: string): string {
   return i >= 0 ? process.argv[i + 1] : dflt;
 }
 
+type IbProg = "ibgw" | "tws" | "unknown";
+
+type IbAcct = "paper" | "live" | "unknown";
+
+interface IbConnState {
+  host: string;
+  ibPort: number;
+  webPort: number;
+  clientId: number;
+  ibProg: IbProg;
+  ibAcct: IbAcct;
+  connected: boolean;
+  nextValidId: number;
+  reconciled: boolean;
+}
+
 function progFromPort(port: number): IbProg {
   if (port === 4001 || port === 4002) return "ibgw";
   if (port === 7496 || port === 7497) return "tws";
   return "unknown";
 }
 
-export const state: ConnState = {
+const conn: IbConnState = {
   host: argVal("--host", "127.0.0.1"),
   ibPort: Number(argVal("--ibport", "4001")),
   webPort: Number(argVal("--port", "8080")),
@@ -33,10 +49,37 @@ export const state: ConnState = {
   reconciled: false,
 };
 
+function pillLabel(): string {
+  const prog = conn.ibProg === "ibgw" ? "IBGW" : conn.ibProg === "tws" ? "TWS" : "IB?";
+  const acct = conn.ibAcct === "paper" ? "PAPER" : conn.ibAcct === "live" ? "LIVE" : "?";
+  return `${prog} ${conn.ibPort} ${acct} id ${conn.clientId}`;
+}
+
+export const state: ConnState = {
+  webPort: conn.webPort,
+  provider: "ib",
+  accountMode: "paper",
+  label: pillLabel(),
+  connected: false,
+  reconciled: false,
+};
+
+function publish(): void {
+  state.accountMode = conn.ibAcct === "live" ? "live" : "paper";
+  state.label = pillLabel();
+  state.connected = conn.connected;
+  state.reconciled = conn.reconciled;
+}
+
+export function setReconciled(): void {
+  conn.reconciled = true;
+  publish();
+}
+
 export const ib = new IBApi({
-  host: state.host,
-  port: state.ibPort,
-  clientId: state.clientId,
+  host: conn.host,
+  port: conn.ibPort,
+  clientId: conn.clientId,
 });
 
 let idCounter = 0;
@@ -47,9 +90,9 @@ const on = (ev: string, fn: (...args: any[]) => void): void => {
 };
 
 export function takeOrderIds(n: number): number {
-  const base = Math.max(idCounter, state.nextValidId);
+  const base = Math.max(idCounter, conn.nextValidId);
   idCounter = base + n;
-  state.nextValidId = idCounter;
+  conn.nextValidId = idCounter;
   return base;
 }
 
@@ -72,17 +115,19 @@ export function connect(): void {
 
 function wire(): void {
   on(EventName.connected, () => {
-    state.connected = true;
+    conn.connected = true;
+    publish();
     emit("exec", { t: "conn", ...state });
-    console.log(`connected to ${state.host}:${state.ibPort}`);
+    console.log(`connected to ${conn.host}:${conn.ibPort}`);
 
     bracket.beginReconcile();
   });
 
   on(EventName.disconnected, () => {
-    state.connected = false;
-    state.reconciled = false;
-    state.ibAcct = "unknown";
+    conn.connected = false;
+    conn.reconciled = false;
+    conn.ibAcct = "unknown";
+    publish();
     bracket.blockActivations();
     emit("exec", { t: "conn", ...state });
     console.log("disconnected, retrying in 5s");
@@ -90,8 +135,9 @@ function wire(): void {
   });
 
   on(EventName.nextValidId, (orderId: number) => {
-    state.nextValidId = Math.max(state.nextValidId, orderId);
-    idCounter = state.nextValidId;
+    conn.nextValidId = Math.max(conn.nextValidId, orderId);
+    idCounter = conn.nextValidId;
+    publish();
     emit("exec", { t: "conn", ...state });
   });
 
@@ -112,7 +158,8 @@ function wire(): void {
 
   on(EventName.managedAccounts, (accountsList: string) => {
     const accts = accountsList.split(",").map((a) => a.trim()).filter(Boolean);
-    state.ibAcct = accts.some((a) => a.startsWith("DU")) ? "paper" : accts.length ? "live" : "unknown";
+    conn.ibAcct = accts.some((a) => a.startsWith("DU")) ? "paper" : accts.length ? "live" : "unknown";
+    publish();
     emit("exec", { t: "conn", ...state });
   });
 

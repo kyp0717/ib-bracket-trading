@@ -13,9 +13,7 @@ try {
       : false;
   }, null, { timeout: 15000 }).then((h) => h.jsonValue() as Promise<string>);
 
-  const wantProg = status.ibProg === 'ibgw' ? 'IBGW' : status.ibProg === 'tws' ? 'TWS' : 'IB?';
-  const wantAcct = status.ibAcct === 'paper' ? 'PAPER' : status.ibAcct === 'live' ? 'LIVE' : '?';
-  const want = `${wantProg} ${status.ibPort} ${wantAcct} id ${status.clientId}`;
+  const want = status.label;
 
   if (pill.startsWith(want)) pass(`pill reads "${want}"`);
   else fail(`pill reads "${want}"`, 'pill="' + pill + '"');

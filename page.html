@@ -1316,10 +1316,10 @@ function onSse(e) {
     case 'conn': {
       const up = !!m.connected;
       $('conn-dot').className = 'dot' + (up ? (m.reconciled ? ' up' : ' wait') : ' down');
-      const prog = m.ibProg === 'ibgw' ? 'IBGW' : m.ibProg === 'tws' ? 'TWS' : 'IB?';
-      const acct = m.ibAcct === 'paper' ? 'PAPER' : m.ibAcct === 'live' ? 'LIVE' : '?';
+      $('conn-pill').dataset.provider = m.provider;
+      $('conn-pill').dataset.accountMode = m.accountMode;
       $('conn-text').textContent = up
-        ? `${prog} ${m.ibPort} ${acct} id ${m.clientId}${m.reconciled ? '' : ' reconciling...'}`
+        ? `${m.label}${m.reconciled ? '' : ' reconciling...'}`
         : 'disconnected';
       break;
     }
