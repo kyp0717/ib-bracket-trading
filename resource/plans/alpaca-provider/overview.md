@@ -80,20 +80,29 @@ relying on overnight equities for a visual drive.
 
 ## Phases
 
-1. [phase-1-broker-seam.md](phase-1-broker-seam.md) — extract the Broker door, keep IB.
-2. [phase-2-wire-contract-prune.md](phase-2-wire-contract-prune.md) — prune wire types to the presentation contract.
-3. [phase-3-core-restructure.md](phase-3-core-restructure.md) — move shared and IB code into their homes.
-4. [phase-4-alpaca-market-data.md](phase-4-alpaca-market-data.md) — Alpaca stock + crypto data adapter.
-5. [phase-5-alpaca-bracket-orders.md](phase-5-alpaca-bracket-orders.md) — Alpaca native bracket orders.
-6. [phase-6-provider-app-entries.md](phase-6-provider-app-entries.md) — two spawn entries.
-7. [phase-7-verify-skill-provider-target.md](phase-7-verify-skill-provider-target.md) — verify loop learns a provider.
+1. [phase-1-broker-seam.md](phase-1-broker-seam.md) — done 2026-10-24, commit 3ee6cb4.
+2. [phase-2-wire-contract-prune.md](phase-2-wire-contract-prune.md) — done 2026-10-24, commit c726e18.
+3. [phase-3-core-restructure.md](phase-3-core-restructure.md) — done 2026-10-24, commit 7dd044d.
+4. [phase-4-alpaca-market-data.md](phase-4-alpaca-market-data.md) — code done 2026-10-24, commit f35fa89; runtime proof blocked on Alpaca paper keys.
+5. [phase-5-alpaca-bracket-orders.md](phase-5-alpaca-bracket-orders.md) — code done 2026-10-24, commit d170e1e; runtime proof blocked on Alpaca paper keys.
+6. [phase-6-provider-app-entries.md](phase-6-provider-app-entries.md) — done 2026-10-24, commit 9beecaa.
+7. [phase-7-verify-skill-provider-target.md](phase-7-verify-skill-provider-target.md) — done 2026-10-24, commit 2d27203.
 
 ## Verification
 
-- Static: `npx tsc --noEmit` over `core/`, `brokers/`, and `apps/`.
-- Runtime: the verify skill, `launch`, `doctor`, `drive <feature>`, `cleanup`,
-  against the provider named in the run. Data proof before visual proof, per the
-  repo contract.
+- Static: `npx tsc --noEmit` over `src/` (core, brokers, apps).
+- Runtime: the verify skill, `launch [ib|alpaca]`, `doctor`,
+  `drive <feature>`, `cleanup`, against the provider named in the run.
+  Data proof before visual proof, per the repo contract.
+
+## Runtime proof still owed
+
+Phases 4 and 5 compile and pass the no-credentials checks, but no live
+Alpaca drive has run: there are no `APCA_API_KEY_ID` /
+`APCA_API_SECRET_KEY` values on either machine as of 2026-10-24. The
+first run with keys must drive `BTC/USD` (24/7) through render and the
+chart, and a liquid stock bracket through activate, fill, flatten, and
+end flat, during an Alpaca session that accepts orders.
 
 ## Implementation guidance
 

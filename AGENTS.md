@@ -1,8 +1,9 @@
 # Agent Instructions: ib-bracket-trading
 
-Bracket-order trading web app against IB Gateway / TWS, in TypeScript
-on Node.js. One language for server and GUI, no build step. This file
-is the design contract and the validation recipe; the lessons in
+Bracket-order trading web app against IB Gateway / TWS or Alpaca, in
+TypeScript on Node.js. One language for server and GUI, no build step.
+One process runs exactly one broker. This file is the design contract
+and the validation recipe; the lessons in
 resource/lessons/ carry what the runs taught us,
 resource/bugs/ carry the defects we fixed, and
 resource/go-live/ carries the path to real money.
@@ -25,28 +26,33 @@ this app is built:
   one-line definition next to it.
 
 How the app is put together, in pipeline terms the developer already
-knows (app modules live in `src/`):
+knows (one process runs exactly one broker; see
+resource/plans/alpaca-provider/ for the layout's origin):
 
-- `src/server.ts` is the intake. It serves one static page and a handful of
-  POST endpoints. Each endpoint calls straight into the state modules.
-  No framework.
-- `bracket.ts` is the order state machine. The only owner of bracket
-  state. Everything order-related lands here.
-- `chart.ts` is a cache of market data. It holds the latest bars, tape,
-  and book in memory and answers snapshot questions.
-- `ib.ts` is the wire. It owns the socket to IB Gateway/TWS and
-  forwards every IB event to bracket.ts or chart.ts. Callbacks never
-  block.
-- `page.html` is the whole GUI. One file: the markup (what exists), the
-  CSS (how it looks), and the script (what happens on clicks and
-  updates). The script connects to `/events` and redraws panels when
-  messages arrive, the same way a dashboard refreshes when a query
-  result changes. The chart library (lightweight-charts) is loaded from
-  a CDN, not installed.
-- `emit.ts` is the fan-out. Two SSE pipes push live updates to the
-  browser: `/events` for execution traffic (orders, audit), `/market`
-  for data traffic (bars, tape, depth). The split keeps heavy data
-  messages from queueing behind order events.
+- `src/apps/<provider>-main.ts` is the entry. It builds one broker
+  adapter and hands it to the shared surface. `ib-main.ts` and
+  `alpaca-main.ts` never import each other's broker package.
+- `src/core/server.ts` is the intake. It serves one static page and a
+  handful of POST endpoints. Each endpoint calls the `Broker`
+  interface, never a broker SDK directly. No framework.
+- `src/core/bracket.ts` is the order state machine and the safety rules:
+  long-only, one live bracket, cancel always passes, entry locks after
+  fill. The only owner of bracket state. It talks to a broker through
+  the intents in `src/core/events.ts`.
+- `src/brokers/<provider>/` is the wire. Each adapter owns its broker
+  socket, order construction, reconcile, and market-data feed, and
+  translates broker events into the neutral leg events core expects.
+  IB lives in `src/brokers/ib/`, Alpaca in `src/brokers/alpaca/`.
+- `src/core/page.html` is the whole GUI. One file: the markup (what
+  exists), the CSS (how it looks), and the script (what happens on
+  clicks and updates). The script connects to `/events` and redraws
+  panels when messages arrive, the same way a dashboard refreshes when
+  a query result changes. The chart library (lightweight-charts) is
+  loaded from a CDN, not installed.
+- `src/core/emit.ts` is the fan-out. Two SSE pipes push live updates to
+  the browser: `/events` for execution traffic (orders, audit),
+  `/market` for data traffic (bars, tape, depth). The split keeps heavy
+  data messages from queueing behind order events.
 
 ## GUI layout contract
 
@@ -224,7 +230,9 @@ task or the operator explicitly asks.
 
 ## Speed rules
 
-- `npm install && npx tsx src/server.ts` must run the app. Nothing else
+- `npm install && npm run start:ib -- --ibport 4002` must run the IB
+  app. `npm run start:alpaca` runs the Alpaca app with the paper keys
+  set. Nothing else
 - Every iteration is edit, restart, click activate. Target under ten
   seconds round trip
 - A new dependency needs one sentence of justification in the commit
