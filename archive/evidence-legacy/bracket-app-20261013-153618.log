@@ -1,0 +1,9 @@
+web ui on http://localhost:8080
+connected to 127.0.0.1:4002
+error 2152 req 46: Exchanges - Depth: NASDAQ; BATS; ARCA; BEX; NYSE; IEX; Top: BYX; AMEX; PEARL; T24X; MEMX; OVERNIGHT; EDGEA; TXSE; CHX; IBEOS; NYSENAT; PSX; LTSE; ISE; DRCTEDGE; 
+error 2109 req 48: Order Event Warning:Attribute 'Outside Regular Trading Hours' is ignored based on the order type and destination. PlaceOrder is now being processed.
+error 10148 req 47: OrderId 47 that needs to be cancelled cannot be cancelled, state: Filled.
+error 202 req 48: Order Canceled - reason:
+error 202 req 49: Order Canceled - reason:
+error 10148 req 49: OrderId 49 that needs to be cancelled cannot be cancelled, state: Cancelled.
+error 2109 req 51: Order Event Warning:Attribute 'Outside Regular Trading Hours' is ignored based on the order type and destination. PlaceOrder is now being processed.

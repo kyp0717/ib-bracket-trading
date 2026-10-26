@@ -1,0 +1,8 @@
+web ui on http://localhost:8080
+connected to 127.0.0.1:4002
+error 366 req 124: No historical data query found for ticker id:124
+error 162 req 125: Historical Market Data Service error message:API historical data query cancelled: 125
+error 366 req 126: No historical data query found for ticker id:126
+error 366 req 133: No historical data query found for ticker id:133
+error 162 req 134: Historical Market Data Service error message:API historical data query cancelled: 134
+error 366 req 135: No historical data query found for ticker id:135

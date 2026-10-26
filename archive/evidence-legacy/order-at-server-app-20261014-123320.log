@@ -1,0 +1,16 @@
+web ui on http://localhost:8080
+connected to 127.0.0.1:4002
+UPLOADED uri=s3://amzn-s3-trading-audit/audit/linden/2026-10-14/chunk-1791995587527-1.log bytes=166
+error 2109 req 132: Order Event Warning:Attribute 'Outside Regular Trading Hours' is ignored based on the order type and destination. PlaceOrder is now being processed.
+error 202 req 131: Order Canceled - reason:
+error 202 req 132: Order Canceled - reason:
+error 202 req 133: Order Canceled - reason:
+error 10148 req 133: OrderId 133 that needs to be cancelled cannot be cancelled, state: Cancelled.
+error 2109 req 135: Order Event Warning:Attribute 'Outside Regular Trading Hours' is ignored based on the order type and destination. PlaceOrder is now being processed.
+UPLOADED uri=s3://amzn-s3-trading-audit/audit/linden/2026-10-14/chunk-1791995589526-2.log bytes=968
+UPLOADED uri=s3://amzn-s3-trading-audit/audit/linden/2026-10-14/chunk-1791995591527-3.log bytes=334
+error 202 req 134: Order Canceled - reason:
+error 202 req 135: Order Canceled - reason:
+error 202 req 136: Order Canceled - reason:
+error 10148 req 136: OrderId 136 that needs to be cancelled cannot be cancelled, state: Cancelled.
+UPLOADED uri=s3://amzn-s3-trading-audit/audit/linden/2026-10-14/chunk-1791995597529-4.log bytes=630

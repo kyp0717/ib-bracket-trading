@@ -1,0 +1,8 @@
+web ui on http://localhost:8080
+connected to 127.0.0.1:4002
+error 2109 req 39: Order Event Warning:Attribute 'Outside Regular Trading Hours' is ignored based on the order type and destination. PlaceOrder is now being processed.
+error 202 req 40: Order Canceled - reason:
+error 202 req 39: Order Canceled - reason:
+error 10148 req 40: OrderId 40 that needs to be cancelled cannot be cancelled, state: Cancelled.
+error 202 req 38: Order Canceled - reason:
+error 2109 req 42: Order Event Warning:Attribute 'Outside Regular Trading Hours' is ignored based on the order type and destination. PlaceOrder is now being processed.

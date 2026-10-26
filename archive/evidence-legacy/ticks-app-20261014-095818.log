@@ -1,0 +1,15 @@
+web ui on http://localhost:8080
+connected to 127.0.0.1:4002
+UPLOADED uri=s3://amzn-s3-trading-audit/audit/linden/2026-10-14/chunk-1791986275336-1.log bytes=166
+error 162 req 123: Historical Market Data Service error message:API historical data query cancelled: 123
+error 162 req 124: Historical Market Data Service error message:API historical data query cancelled: 124
+error 366 req 125: No historical data query found for ticker id:125
+error 162 req 131: Historical Market Data Service error message:API historical data query cancelled: 131
+error 162 req 132: Historical Market Data Service error message:API historical data query cancelled: 132
+error 366 req 133: No historical data query found for ticker id:133
+error 300 req 134: Can't find EId with tickerId:134
+UPLOADED uri=s3://amzn-s3-trading-audit/audit/linden/2026-10-14/chunk-1791986277336-2.log bytes=1113
+error 162 req 136: Historical Market Data Service error message:API historical data query cancelled: 136
+error 162 req 137: Historical Market Data Service error message:API historical data query cancelled: 137
+error 366 req 138: No historical data query found for ticker id:138
+UPLOADED uri=s3://amzn-s3-trading-audit/audit/linden/2026-10-14/chunk-1791986297341-3.log bytes=514

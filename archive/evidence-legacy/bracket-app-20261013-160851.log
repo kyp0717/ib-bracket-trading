@@ -1,0 +1,17 @@
+web ui on http://localhost:8080
+connected to 127.0.0.1:4002
+error 202 req 118: Order Canceled - reason:
+error 202 req 119: Order Canceled - reason:
+error 202 req 120: Order Canceled - reason:
+error 10148 req 120: OrderId 120 that needs to be cancelled cannot be cancelled, state: Cancelled.
+error 2152 req 126: Exchanges - Depth: BATS; NASDAQ; ARCA; BEX; NYSE; IEX; Top: BYX; PEARL; AMEX; T24X; MEMX; OVERNIGHT; EDGEA; TXSE; CHX; IBEOS; NYSENAT; PSX; LTSE; ISE; DRCTEDGE; 
+error 2109 req 128: Order Event Warning:Attribute 'Outside Regular Trading Hours' is ignored based on the order type and destination. PlaceOrder is now being processed.
+error 202 req 127: Order Canceled - reason:
+error 202 req 128: Order Canceled - reason:
+error 202 req 129: Order Canceled - reason:
+error 10148 req 129: OrderId 129 that needs to be cancelled cannot be cancelled, state: Cancelled.
+error 2109 req 131: Order Event Warning:Attribute 'Outside Regular Trading Hours' is ignored based on the order type and destination. PlaceOrder is now being processed.
+error 202 req 131: Order Canceled - reason:
+error 10148 req 132: OrderId 132 that needs to be cancelled cannot be cancelled, state: PendingCancel.
+error 202 req 132: Order Canceled - reason:
+error 2109 req 133: Order Event Warning:Attribute 'Outside Regular Trading Hours' is ignored based on the order type and destination. PlaceOrder is now being processed.

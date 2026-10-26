@@ -1,0 +1,12 @@
+web ui on http://localhost:8080
+connected to 127.0.0.1:4002
+UPLOAD_SKIPPED reason=no-credentials key=audit/linden/2026-10-14/chunk-1791983987526-1.log
+error 162 req 123: Historical Market Data Service error message:API historical data query cancelled: 123
+error 162 req 124: Historical Market Data Service error message:API historical data query cancelled: 124
+error 366 req 125: No historical data query found for ticker id:125
+UPLOAD_SKIPPED reason=no-credentials key=audit/linden/2026-10-14/chunk-1791983989527-2.log
+error 162 req 131: Historical Market Data Service error message:API historical data query cancelled: 131
+error 162 req 132: Historical Market Data Service error message:API historical data query cancelled: 132
+error 366 req 133: No historical data query found for ticker id:133
+error 300 req 134: Can't find EId with tickerId:134
+UPLOAD_SKIPPED reason=no-credentials key=audit/linden/2026-10-14/chunk-1791983991526-3.log
