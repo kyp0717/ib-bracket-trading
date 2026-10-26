@@ -143,9 +143,10 @@ ls-trader `TRADER_S3_BUCKET` variable is intentionally ignored here.
 
 - woodlawn: IB Gateway **paper** listens on port 4002, same as linden.
   IB Gateway **live** is 4001 on both machines.
-- linden: IB Gateway **paper** listens on port 4002 (not 4001). The earlier
-  note that 4002 was a live port was wrong; it is paper and safe for
-  destructive drives.
+- linden: IB Gateway **paper** listens on port 4002, reconfirmed by the
+  operator 2026-10-26 (app connected against it, account mode paper).
+  Port 4001 here is IB Gateway **live**; never point a test or scenario
+  at it.
 - linden: the IB Gateway paper socket drops occasionally mid-run (a few
   times per hour). The app reconnects and reconciles on its own; expect
   extra `reconcile` lines in the audit trail during a run and do not treat
@@ -159,8 +160,9 @@ ls-trader `TRADER_S3_BUCKET` variable is intentionally ignored here.
 | TWS        | unconfirmed | 7497 (believed, unconfirmed) |
 
 IB Gateway ports are confirmed on both machines: 4001 is live, 4002 is
-paper (confirmed on linden 2026-10-14 and on woodlawn 2026-10-23 with
-the paper gateway listening on 4002). TWS ports are still unconfirmed.
+paper (confirmed on linden 2026-10-14 and 2026-10-26, and on woodlawn
+2026-10-23, with the paper gateway listening on 4002). TWS ports are
+still unconfirmed.
 The 2026-10-08 remap note claimed 7497 live and 7500 paper; the
 operator now reports 7497 as TWS paper (the vendor default). Confirm
 each TWS port with a paper login before treating either as safe for
